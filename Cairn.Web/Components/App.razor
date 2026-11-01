@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css"/>
+    <link rel="stylesheet" href="app.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="Cairn.Web.styles.css"/>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+</head>
+
+<body>
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    
+    <script type="module" src="_content/Blazor-ApexCharts/js/blazor-apexcharts.js"></script>
+
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

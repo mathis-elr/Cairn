@@ -1,0 +1,17 @@
+﻿using Cairn.Domain.Modeles;
+
+namespace Cairn.Application.DTO.FluxBancaires
+{
+    public class CompteBanqueDto
+    {
+        public int Id { get; set; }
+
+        public int IdComptePowens { get; set; }
+
+        public string Nom { get; set; } = string.Empty;
+
+        public string TypePowens { get; set; } = string.Empty;
+
+        public Banque Banque { get; set; } = null!;
+    }
+}

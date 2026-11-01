@@ -1,0 +1,382 @@
+using Cairn.Application.DTO;
+using Cairn.Application.DTO.FluxBancaires;
+using Cairn.Application.Interfaces.APIs;
+using Cairn.Application.Interfaces.Repositories;
+using Cairn.Application.Interfaces.Services;
+using Cairn.Application.Services.Encrypt;
+using Cairn.Domain.Extensions;
+using Cairn.Domain.Modeles;
+using Cairn.Infrastructure.APIs.Powens.Responses;
+using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace Cairn.Infrastructure.APIs.Powens
+{
+    public class PowensApiService : IPowensApiService
+    {
+        private readonly IUtilisateurPowensRepository _utilisateurPowensRepository;
+        private readonly ICompteBanqueRepository _compteBanqueRepository;
+        private readonly IFluxBancaireService _fluxBancaireService;
+        private readonly IBanqueRepository _banqueAccesRepository;
+        private readonly CryptOptions _optionsEncryption;
+        private readonly ICryptService _encryptService;
+        private readonly PowensApiOptions _options;
+        private readonly HttpClient _httpClient;
+
+        public PowensApiService(IUtilisateurPowensRepository utilisateurPowensRepository,
+                                ICompteBanqueRepository compteBanqueRepository,
+                                IFluxBancaireService fluxBancaireService,      
+                                IOptions<CryptOptions> optionsEncryption,
+                                IBanqueRepository banqueAccesRepository,
+                                IOptions<PowensApiOptions> options,
+                                ICryptService encryptService,
+                                HttpClient httpClient)
+        {
+            _utilisateurPowensRepository = utilisateurPowensRepository;
+            _compteBanqueRepository = compteBanqueRepository;
+            _banqueAccesRepository = banqueAccesRepository;
+            _optionsEncryption = optionsEncryption.Value;
+            _fluxBancaireService = fluxBancaireService;
+            _encryptService = encryptService;
+            _options = options.Value;
+            _httpClient = httpClient;
+
+            _httpClient.BaseAddress = new Uri(_options.BaseUri);
+            _httpClient.Timeout = TimeSpan.FromSeconds(10);
+        }
+
+        public async Task<string> GetUrlConnexionPowens(int idUser)
+        {
+            await VerifierUtilisateurPowensExists(idUser);
+
+            var code = await GenerateCodeTemporaireByUserId(idUser);
+
+            var fullConnectUrl = new Uri(new Uri(_options.BaseUri), _options.ConnectEndPoint);
+
+            var encodedRedirect = Uri.EscapeDataString(_options.RedirectUri);
+
+            return $"{fullConnectUrl}" +
+                       $"?client_id={_options.ClientId}" +
+                       $"&redirect_uri={encodedRedirect}" +
+                       $"&code={code}";
+        }
+
+        public async Task<string> GetUrlReconnexionPowens(int idUser, int compteId)
+        {
+            await VerifierUtilisateurPowensExists(idUser);
+
+            var code = await GenerateCodeTemporaireByUserId(idUser);
+
+            var banqueAssocie = await _banqueAccesRepository.GetByCompteId(compteId) 
+                ?? throw new Exception("Aucune banque associée a ce compte");
+
+            var fullConnectUrl = new Uri(new Uri(_options.BaseUri), _options.ReconnectEndPoint);
+
+            var encodedRedirect = Uri.EscapeDataString(_options.RedirectUri);
+
+            return $"{fullConnectUrl}" +
+                       $"?client_id={_options.ClientId}" +
+                       $"&redirect_uri={encodedRedirect}" +
+                       $"&connection_id={banqueAssocie.IdConnectionPowens}" +
+                       $"&code={code}";
+        }
+
+        public async Task CreeNouvelUtilisateur(int userId)
+        {
+            var utilisateurExistant = await _utilisateurPowensRepository.GetByUserId(userId);
+
+            if (utilisateurExistant != null)
+                return;
+
+            var accesDictionnary = new Dictionary<string, string>();
+            accesDictionnary.Add("client_id", _options.ClientId);
+            accesDictionnary.Add("client_secret", _options.ClientSecret);
+            using var bodyUrl = new FormUrlEncodedContent(accesDictionnary);
+
+            var reponse = await _httpClient.PostAsync(_options.NouvelUtilisateurEndPoint, bodyUrl);
+            var codeStatus = (int)reponse.StatusCode;
+
+            VerifierContenueReponse(reponse, codeStatus);
+
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var reponseJson = JsonDocument.Parse(reponseString);
+            var rootReponse = reponseJson.RootElement;
+
+            var newUser = JsonSerializer.Deserialize<PowensNouvelUtilisateurApiResponse>(reponseString);
+            if (newUser == null || newUser.AuthToken == null) throw new Exception("Echec de la création d'un nouvel utilisateur powens.");
+
+            await SaveUtiliteurPowens(userId, newUser.AuthToken, newUser.IdUser);
+        }
+
+        public async Task VerifierUtilisateurPowensExists(int userId)
+        {
+            var utilisateurPowens = await _utilisateurPowensRepository.GetByUserId(userId);
+            if (utilisateurPowens != null)
+                return;
+
+            await CreeNouvelUtilisateur(userId);
+        }
+
+        public async Task<string> GenerateCodeTemporaireByUserId(int userId)
+        {
+            var utilisateurPowens = await _utilisateurPowensRepository.GetByUserId(userId) ?? throw new Exception("Aucun utilisateur powens est associé à ce compte.");
+            var tokenClair = _encryptService.Decrypt(utilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
+
+            var reponse = await RequeteAvecToken(HttpMethod.Get, tokenClair, _options.CodeByTokenEndPoint);
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var codeTemporaire = JsonSerializer.Deserialize<PowensCodeTemporaireApiResponse>(reponseString);
+
+            return codeTemporaire?.Code ?? throw new Exception("Echec de la récupération d'un code temporaire");
+        }
+
+        public async Task SaveBanque(int connectionBanqueId, int userId)
+        {
+            var utilisateurPowens = await _utilisateurPowensRepository.GetByUserId(userId) ?? throw new Exception("Aucun utilisateur powens est associé à ce compte.");
+            var tokenClair = _encryptService.Decrypt(utilisateurPowens!.AccessTokenCrypte, _optionsEncryption.MasterKey);
+
+            var banquesEnregistrees = await _banqueAccesRepository.GetAllByUserId(userId);
+            var connection = await GetConnection(tokenClair, connectionBanqueId);
+
+            var idBanque = 0;
+            var banqueExiste = banquesEnregistrees?.FirstOrDefault(b => b.IdConnectorPowens == connection.IdConnector);
+            if (banqueExiste == null)
+            {
+                var newBanque = new Banque
+                {
+                    IdConnectionPowens = connectionBanqueId,
+                    IdConnectorPowens = connection.IdConnector,
+                    Nom = await GetNomBanque(tokenClair, connection.IdConnector),
+                    StatutConnexion = StatutConnexionExtension.ToStatutConnexion(connection.PowensState),
+                    DerniereSynchro = connection.LastUpdate,
+                    UtilisateurPowensId = utilisateurPowens.Id,
+                };
+                await _banqueAccesRepository.Add(newBanque);
+                idBanque = newBanque.Id;
+            }
+            else
+            {
+                idBanque = banqueExiste.Id;
+
+                banqueExiste.IdConnectionPowens = connectionBanqueId;
+                banqueExiste.StatutConnexion = StatutConnexionExtension.ToStatutConnexion(connection.PowensState);
+                banqueExiste.DerniereSynchro = connection.LastUpdate;
+
+                await _banqueAccesRepository.SaveChanges();
+            }
+
+            await SaveComptes(tokenClair, idBanque, connectionBanqueId);
+        }
+
+        public async Task VerifierEtSynchroniserFluxBancairesAsync()
+        {
+            var currentDate = DateTime.UtcNow;
+
+            var finMoisPrecedent = new DateTime(currentDate.Year, currentDate.Month, 1).AddDays(-1);
+
+            var comptes = await _compteBanqueRepository.GetAllNonInvestissement();
+
+            if (!comptes.Any())
+                return;
+
+            foreach (var compte in comptes)
+            {
+                var derniereDate = await _fluxBancaireService.GetDateDernierFlux(compte!.Id);
+
+                if (derniereDate.HasValue && derniereDate.Value >= finMoisPrecedent)
+                    continue;
+
+                var dateDebut = derniereDate ?? new DateTime(currentDate.Year, currentDate.Month, 1).AddMonths(-2);
+
+                await GetTransactions(dateDebut, finMoisPrecedent, compte);
+            }
+        }
+
+        public async Task GetTransactions(DateTime dateDebut, DateTime dateFin, CompteBanque compteBanque)
+        {
+            var utilisateurPowens = compteBanque.Banque.UtilisateurPowens;
+            var tokenClair = _encryptService.Decrypt(utilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
+
+            await RafraichissementCompteBancaire(tokenClair, compteBanque.Banque.IdConnectionPowens);
+            await Task.Delay(5000);
+
+            var dateDebutString = dateDebut.ToString("yyyy-MM-dd");
+            var dateFinString = dateFin.ToString("yyyy-MM-dd");
+            var requete = $"{_options.AccountsEndPoint}/{compteBanque.IdComptePowens}/transactions?min_date={dateDebutString}&max_date={dateFinString}&limit=500";
+
+            var reponse = await RequeteAvecToken(HttpMethod.Get, tokenClair, requete);
+
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var transactions = JsonSerializer.Deserialize<PowensTransactionsApiResponse>(reponseString);
+
+            var flux = transactions?.Transactions?
+                .Select(t => new FluxBancaireImportDto
+                {
+                    Id = t.Id,
+                    Date = t.Date,
+                    Valeur = t.Valeur,
+                    Libelle = t.Libelle ?? string.Empty
+                })
+                .ToList();
+
+            await _fluxBancaireService.AddFluxBancaire(flux, utilisateurPowens.UtilisateurId, compteBanque.Id);
+        }
+
+        public async Task<List<PositionInvestissementImportDto>?> GetPositionInvestissements(CompteBanque compteBanque)
+        {
+            var compte = await _compteBanqueRepository.GetById(compteBanque.Id) ?? throw new Exception("Aucun compte bancaire associe");
+            var utilisateurPowens = compte.Banque.UtilisateurPowens;
+            var tokenClair = _encryptService.Decrypt(utilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
+
+            await RafraichissementCompteBancaire(tokenClair, compteBanque.Banque.IdConnectionPowens);
+            await Task.Delay(5000);
+
+            var reponse = await RequeteAvecToken(HttpMethod.Get, tokenClair, string.Format(_options.InvestEndPoint, compte.IdComptePowens));
+
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var investissements = JsonSerializer.Deserialize<PowensInvestissementsApiResponse>(reponseString);
+
+            return investissements?.PositionsInvest?
+                .Select(t => new PositionInvestissementImportDto
+                {
+                    ISIN = t.CodeType == "isin",
+                    Code = t.Code ?? string.Empty,
+                    Label = t.Label,
+                    Quantite = t.Quantite,
+                    PrixAchat = t.PrixAchat == 0 ? t.PrixCourant / t.Quantite : t.PrixAchat,
+                    PrixCourant = t.PrixCourant,
+                    DatePrixCourant = t.DatePrixCourant ?? DateTime.UtcNow,
+                    DerniereMaj = t.DateDerniereMAJ ?? DateTime.UtcNow,
+                    CompteBanqueId = compte.Id
+                })
+                .ToList();
+        }
+
+        public async Task SynchroniserSoldeComptes()
+        {
+            var banques = await _banqueAccesRepository.GetAll();
+
+            if (!banques.Any())
+                return;
+
+            foreach(var banque in banques)
+            {
+                var tokenClair = _encryptService.Decrypt(banque.UtilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
+                var comptesPowens = await GetComptes(tokenClair, banque.IdConnectionPowens);
+                var comptesPowensDict = comptesPowens.ToDictionary(c => c.Id);
+
+                foreach(var compte in banque.Comptes)
+                {
+                    if(!comptesPowensDict.TryGetValue(compte.IdComptePowens, out var comptePowens))
+                        continue;
+
+                    if(compte.Solde != comptePowens.Solde)
+                        compte.Solde = comptePowens.Solde ?? 0;
+                }
+            }
+            await _compteBanqueRepository.SaveChanges();
+        }
+
+        private async Task<HttpResponseMessage> RequeteAvecToken(HttpMethod type, string token, string requete)
+        {
+            using var request = new HttpRequestMessage(type, requete);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var reponse = await _httpClient.SendAsync(request);
+
+            var codeStatus = (int)reponse.StatusCode;
+            VerifierContenueReponse(reponse, codeStatus);
+            return reponse;
+        }
+
+        private async Task RafraichissementCompteBancaire(string token, int connectionBanqueId)
+        {
+            var uri = string.Format(_options.ConnectionsEndPoint, connectionBanqueId) + _options.RafraichissementBanqueEndPoint;
+            await RequeteAvecToken(HttpMethod.Post, token, uri);
+        }
+
+        private async Task<string> GetNomBanque(string token, int idConnector)
+        {
+            var reponse = await RequeteAvecToken(HttpMethod.Get, token, string.Format(_options.ConnectorEndPoint, idConnector));
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var comptes = JsonSerializer.Deserialize<PowensConnectorApiResponse>(reponseString);
+
+            if (comptes?.NomBanque == null)
+                throw new Exception("L'API n'a renvoyé aucun connector pour cette banque.");
+
+            return comptes.NomBanque;
+        }
+
+        private async Task<PowensConnectionApiResponse> GetConnection(string token, int connectionBanqueId)
+        {
+            var reponse = await RequeteAvecToken(HttpMethod.Get, token, string.Format(_options.ConnectionsEndPoint, connectionBanqueId));
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var connection = JsonSerializer.Deserialize<PowensConnectionApiResponse>(reponseString);
+
+            return connection == null ? throw new Exception("L'API n'a renvoyé aucune connection pour cet utilisateur.") : connection;
+        }
+
+        private async Task<IEnumerable<PowensTypeCompteApiResponse>> GetComptes(string token, int connectionBanqueId)
+        {
+            var url = string.Format(_options.AccountsConnectionEndPoint, connectionBanqueId);
+
+            var reponse = await RequeteAvecToken(HttpMethod.Get, token, url);
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+
+            var comptes = JsonSerializer.Deserialize<PowensComptesApiResponse>(reponseString);
+
+            if (comptes?.Comptes == null || !comptes.Comptes.Any())
+                throw new Exception("L'API n'a renvoyé aucun compte pour cet utilisateur.");
+
+            return comptes.Comptes;
+        }
+
+        private async Task SaveUtiliteurPowens(int userId, string token, int idUtilisateurPowens)
+        {
+            var nouvelUtilisateur = new UtilisateurPowens
+            {
+                IdUtilisateurPowens = idUtilisateurPowens,
+                AccessTokenCrypte = _encryptService.Encrypt(token, _optionsEncryption.MasterKey),
+                UtilisateurId = userId,
+            };
+            await _utilisateurPowensRepository.Add(nouvelUtilisateur);
+        }
+
+        private async Task SaveComptes(string token, int banqueIdLocal, int connectionBanqueId)
+        {
+            var comptes = await GetComptes(token, connectionBanqueId);
+
+            var comptesExistants = await _compteBanqueRepository.GetAllByBanqueId(banqueIdLocal);
+            var nouveauxComptes = comptes.Where(c => !comptesExistants.Any(ce => ce.IdComptePowens == c.Id)).ToList();
+
+            foreach (var compte in nouveauxComptes)
+            {
+                var newCompte = new CompteBanque
+                {
+                    IdComptePowens = compte.Id,
+                    Nom = compte?.NomCompte ?? "Inconnue",
+                    TypePowens = compte?.Type ?? "Inconnu",
+                    TypeCompte = TypeCompteExtensions.ToTypeCompte(compte?.Type),
+                    Solde = compte?.Solde ?? 0,
+                    BanqueId = banqueIdLocal,
+                };
+
+                await _compteBanqueRepository.Add(newCompte);
+            }
+        }
+
+        private void VerifierContenueReponse(HttpResponseMessage reponse, int codeStatus)
+        {
+            if (reponse.Content.Headers.ContentType.MediaType == "application/json")
+                return;
+
+            throw codeStatus switch
+            {
+                403 => new Exception("Erreur de pare feu."),
+                404 => new Exception("Erreur dans l'URL."),
+                500 => new Exception("Erreur d'accès au serveur."),
+                _ => new Exception("Erreur inconnue, code erreur:" + codeStatus),
+            };
+        }
+    }
+}

@@ -1,0 +1,229 @@
+﻿using Cairn.Infrastructure.APIs.TradeRepublic.Responses;
+using Cairn.Application.Interfaces.Repositories;
+using Cairn.Application.DTO.FluxTradeRepublic;
+using Cairn.Application.Interfaces.Services;
+using Cairn.Application.Services.Encrypt;
+using Cairn.Application.Interfaces.APIs;
+using Cairn.Application.DTO.Auth;
+using Cairn.Domain.Modeles;
+using Cairn.Domain.Enums;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
+using System.Numerics;
+using System.Text.Json;
+
+
+namespace Cairn.Infrastructure.APIs.TradeRepublic
+{
+    public class TradeRepublicApiService : ITradeRepublicApiService
+    {
+        private readonly ITradeRepublicAccesRepository _tradeRepublicAccesRepository;
+        private readonly IFluxTradeRepublicService _fluxInvestissementService;
+        private readonly TradeRepublicApiOptions _optionsTradeRepublic;
+        private readonly CryptOptions _optionsEncryption;
+        private readonly ICryptService _encryptService;
+        private readonly HttpClient _httpClient;
+
+        public TradeRepublicApiService(ITradeRepublicAccesRepository tradeRepublicAccesRepository,
+                                       IOptions<TradeRepublicApiOptions> optionsTradeRepublic,
+                                       IFluxTradeRepublicService fluxInvestissementService,
+                                       IOptions<CryptOptions> optionsEncryption,
+                                       ICryptService encryptService, 
+                                       HttpClient httpClient)
+        {
+            _tradeRepublicAccesRepository = tradeRepublicAccesRepository;   
+            _fluxInvestissementService = fluxInvestissementService;
+            _optionsEncryption = optionsEncryption.Value;
+            _encryptService = encryptService;
+            _optionsTradeRepublic = optionsTradeRepublic.Value;
+            _httpClient = httpClient;
+
+            _httpClient.BaseAddress = new Uri(_optionsTradeRepublic.BaseUri);
+            _httpClient.Timeout = TimeSpan.FromSeconds(120);
+
+            if (!_httpClient.DefaultRequestHeaders.Contains(_optionsTradeRepublic.CleeApiKey))
+            {
+                _httpClient.DefaultRequestHeaders.Add(_optionsTradeRepublic.CleeApiKey, _optionsTradeRepublic.CleeApiValue);
+            }
+        }
+
+        public async Task<(int, string)> GetSms(int userId)
+        {
+            try
+            {
+                var accesTR = await GetTradeRepublicAcces(userId) ?? throw new Exception("Identifiants Trade Republic manquants");
+
+                var request = new HttpRequestMessage(HttpMethod.Post, _optionsTradeRepublic.RequestSmsEndPoint);
+
+                var jsonPayload = "{\"num-tel\":\"+33" + accesTR.NumTel + "\", \"pin\":\"" + accesTR.Pin + "\"}";
+                request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.SendAsync(request);
+
+                int codeStatus = (int)response.StatusCode;
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(responseBody);
+                var retour = doc.RootElement;
+
+                string message = string.Empty;
+                if (retour.TryGetProperty("message", out var messageJson))
+                {
+                    message = messageJson.GetString() ?? string.Empty;
+                }
+
+                return (codeStatus, message);
+            }
+            catch (HttpRequestException)
+            {
+                throw new HttpRequestException ("Impossible de contacter l'API");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erreur innatendu lors du requet sms" + ex.Message);
+                throw new Exception ($"Erreur inattendue lors de la demande d'envoi sms");
+            }
+        }
+
+        public async Task<string> ConfirmSms(string codeSms)
+        {
+            try
+            {
+                if (codeSms.Length != 4)
+                    throw new Exception("Format du code invalide, 4 chiffres requis");
+
+                var body = new { code = codeSms };
+                var response = await _httpClient.PostAsJsonAsync(_optionsTradeRepublic.ConfirmSmsEndPoint, body);
+
+                int codeStatus = (int)response.StatusCode;
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(responseBody);
+                var retour = doc.RootElement;
+
+                string message = string.Empty;
+                if (retour.TryGetProperty("message", out var messageJson))
+                {
+                    message = messageJson.GetString() ?? string.Empty;
+                }
+
+                return message;
+            }
+            catch (HttpRequestException)
+            {
+                throw new HttpRequestException("Impossible de contacter l'API");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erreur innatendu lors de la confirmation sms" + ex.Message);
+                throw new Exception($"Erreur inattendue lors de la confirmation du sms");
+            }
+        }
+
+        public async Task<bool> ChargerTransactions(int userId)
+        {
+            try
+            {
+                var dernierIdEnregistreValue = await _fluxInvestissementService.GetDernierFluxEnregistre(userId);
+                var request = new HttpRequestMessage(HttpMethod.Get, _optionsTradeRepublic.DatasEndPoint);
+
+                if (!string.IsNullOrEmpty(dernierIdEnregistreValue))
+                    request.Headers.Add(_optionsTradeRepublic.DernierIdEnregistreKey, dernierIdEnregistreValue);
+
+                var response = await _httpClient.SendAsync(request);
+
+                int codeStatus = (int)response.StatusCode;
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString
+                };
+
+                var responseBody = await response.Content.ReadFromJsonAsync<TradeRepublicFluxApiResponse>(options) ?? throw new Exception("L'API a renvoyé un corps vide.");
+                
+                if(responseBody.Transactions.Count > 0)
+                {
+                    var fluxImport = responseBody.Transactions
+                        .Where(t =>
+                            t.Id != null &&
+                            t.Date.HasValue &&
+                            t.Prix.HasValue &&
+                            t.Quantite.HasValue &&
+                            t.Actif != null &&
+                            t.ISIN != null)
+                        .Select(t => new FluxInvestissementImportDto
+                        {
+                            Id = t.Id!,
+                            Date = t.Date!.Value,
+                            Type = (TypeFlux)t.Type!.Value,
+                            Prix = t.Prix.Value,
+                            Quantite = t.Quantite.Value,
+                            Frais = t.Frais,
+                            Total = t.Total,
+                            ISIN = t.ISIN!,
+                            Actif = t.Actif!
+                        })
+                        .ToList();
+
+                    await _fluxInvestissementService.MapperTransactions(fluxImport,userId);
+
+                    await _tradeRepublicAccesRepository.UpdateDateSynchornisation(userId);
+
+                    return true;
+                }
+                return false;
+            }
+            catch (HttpRequestException)
+            {
+                throw new HttpRequestException("Impossible de contacter l'API");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erreur innatendu lors de la recuperation des transactions" + ex.Message);
+                throw new Exception($"Erreur inattendue lors de la récupération des transactions");
+            }
+        }
+
+        public async Task<TradeRepublicAccesDto?> GetTradeRepublicAcces(int userId)
+        {
+            var acces = await _tradeRepublicAccesRepository.GetLoginByUserId(userId);
+
+            var accesDto = acces != null ? new TradeRepublicAccesDto
+            {
+                NumTel = _encryptService.Decrypt(acces.NumTelCrypte, _optionsEncryption.MasterKey),
+                Pin = _encryptService.Decrypt(acces.PinCrypte, _optionsEncryption.MasterKey)
+            } : null;
+
+            return accesDto;
+        }
+
+        public async Task SaveAcces(TradeRepublicAccesDto accesDto, int userId)
+        {
+            var acces = await _tradeRepublicAccesRepository.GetLoginByUserId(userId);
+
+            if (acces != null)
+            {
+                var numTelEntier = accesDto.NumTel.Replace(" ", "");
+
+                acces.NumTelCrypte = _encryptService.Encrypt(numTelEntier, _optionsEncryption.MasterKey);
+                acces.PinCrypte = _encryptService.Encrypt(accesDto.Pin, _optionsEncryption.MasterKey);
+            }
+            else
+            {
+                var newAcces = new CompteTradeRepublic
+                {
+                    NumTelCrypte = _encryptService.Encrypt(accesDto.NumTel, _optionsEncryption.MasterKey),
+                    PinCrypte = _encryptService.Encrypt(accesDto.Pin, _optionsEncryption.MasterKey),
+                    UtilisateurId = userId,
+                    DerniereSynchronisation = DateTime.UtcNow
+                };
+
+                await _tradeRepublicAccesRepository.Add(newAcces);
+            }
+        }
+    }
+}

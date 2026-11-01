@@ -1,0 +1,26 @@
+﻿using Cairn.Application.DTO.FluxBancaires;
+using Cairn.Domain.Modeles;
+
+namespace Cairn.Application.Interfaces.Repositories
+{
+    public interface IFluxBancaireRepository
+    {
+        Task<DateTime?> GetDateDernierFluxByCompteId(int compteId);
+
+        Task<List<FluxBancaire>> GetByUserId(int userId);
+
+        Task<List<FluxBancaire>> GetByCompteId(int compteId);
+
+        Task<IEnumerable<FluxBancaire>> GetAllSansCategorie();
+
+        Task<Dictionary<string, int?>> GetCorrespondancesCategories();
+
+        Task<List<BudgetCategorieRawDto>> GetBudgetParMacroCategorieParMois(int compteId);
+
+        Task AddRangeForUserId(List<FluxBancaireImportDto> flux, int userId, int comptePowensId);
+
+        Task UpdateRangeForUserId(List<FluxBancaireDto> fluxMensuelVM, int userId);
+
+        Task UpdateRangeSuggestions(IEnumerable<FluxBancaire> fluxList);
+    }
+}

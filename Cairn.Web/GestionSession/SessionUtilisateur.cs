@@ -1,0 +1,11 @@
+﻿namespace Cairn.Web.GestionSession
+{
+    public class SessionUtilisateur()
+    {
+        public int Id { get; set; }
+
+        public string Email { get; set; } = string.Empty;
+
+        public string Prenom { get; set; } = string.Empty;
+    }
+}

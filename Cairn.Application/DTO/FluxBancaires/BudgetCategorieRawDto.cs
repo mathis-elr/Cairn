@@ -1,0 +1,11 @@
+﻿namespace Cairn.Application.DTO.FluxBancaires
+{
+    public class BudgetCategorieRawDto
+    {
+        public string Categorie { get; set; } = string.Empty;
+
+        public DateTime Date { get; set; }
+
+        public decimal BudgetCategorie { get; set; }
+    }
+}
