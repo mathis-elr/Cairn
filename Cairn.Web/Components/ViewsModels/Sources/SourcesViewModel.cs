@@ -5,12 +5,10 @@ using Cairn.Web.GestionSession;
 
 namespace Cairn.Web.Components.ViewsModels.Sources
 {
-    public class SourcesViewModel(ICompteTradeRepubliqueService tradeRepubliqueService,
-                                  ICompteBanqueService compteBanqueService,
+    public class SourcesViewModel(ICompteBanqueService compteBanqueService,
                                   IPowensApiService powensApiService,
                                   SessionService sessionService)
     {
-        private readonly ICompteTradeRepubliqueService _tradeRepubliqueService = tradeRepubliqueService;
         private readonly ICompteBanqueService _compteBanqueService = compteBanqueService;
         private readonly IPowensApiService _powensApiService = powensApiService;
         private readonly SessionService _sessionService = sessionService;
@@ -44,17 +42,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources
             {
                 await InitialiserSession();
 
-                var trAccesTask = LoadCompteTradeRepublic();
-
-                await Task.WhenAll(
-                    LoadComptesBanque(),
-                    trAccesTask
-                );
-
-                var trAcces = await trAccesTask;
-
-                if (trAcces != null)
-                    Sources.Add(trAcces);
+                await LoadComptesBanque();
 
                 if (AucuneSource)
                     return;
@@ -115,10 +103,5 @@ namespace Cairn.Web.Components.ViewsModels.Sources
         {
             Sources = await _compteBanqueService.GetAllByUserId(IdUser);
         } 
-
-        private async Task<SourceDto?> LoadCompteTradeRepublic()
-        {
-            return await _tradeRepubliqueService.GetByUserId(IdUser);
-        }
     }
 }

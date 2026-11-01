@@ -1,16 +1,13 @@
-﻿using Cairn.Application.Interfaces.Services;
-using Cairn.Application.DTO.Patrimoine;
+﻿using Cairn.Application.DTO.Patrimoine;
 using Cairn.Application.DTO.Profil;
 using Cairn.Web.GestionSession;
 using System.Globalization;
 
 namespace Cairn.Web.Components.ViewsModels
 {
-    public class DashboardViewModel(SessionService sessionService, 
-                                 IFluxTradeRepublicService fluxInvestissementService)
+    public class DashboardViewModel(SessionService sessionService)
     {
         private readonly SessionService _sessionService = sessionService;
-        private readonly IFluxTradeRepublicService _fluxInvestissementService = fluxInvestissementService;
 
         // USER CONNECTE
         public int IdUser { get; set; }
@@ -21,7 +18,7 @@ namespace Cairn.Web.Components.ViewsModels
         public void NotifyStateChanged() => OnChange?.Invoke();
 
         // PROPRIETES PERSPECTIVES
-        public decimal InvestissementMoyenMensuel { get; set; }
+        public decimal InvestissementMoyenMensuel { get; set; } = 100;
         public decimal EvolutionAnnuellePourcentage { get; set; } = 8;
         public int PerspectiveNbAnnees { get; set; } = 15;
         public List<ValeurParAnLineChartDto> PerspectivesValeurPatrimoineParAn { get; set; } = [];
@@ -53,34 +50,12 @@ namespace Cairn.Web.Components.ViewsModels
                 IdUser = _sessionService.Id;
                 PrenomUser = _sessionService.Prenom;
 
-                var prixParActif = await _fluxInvestissementService.GetPrixParActif();
-
-                await Task.WhenAll(
-                     LoadValeurPatrimoineCourante(prixParActif),
-                     LoadProportionParActif(prixParActif),
-                     LoadInvestissementMoyenMensuel(),
-                     LoadValeurInvestissementTotale(),
-                     CalculerInvestisseurDepuis()
-                    );
-
                 CalculerEvolutionDuPatrimoine();
             }
             finally
             {
                 RecuparationEnCours = false;
             }
-        }
-
-        public async Task LoadInfosProfil()
-        {
-            var prixParActif = await _fluxInvestissementService.GetPrixParActif();
-
-            await Task.WhenAll(
-                 LoadValeurPatrimoineCourante(prixParActif),
-                 LoadValeurInvestissementTotale()
-                );
-
-            NotifyStateChanged();
         }
 
         public void CalculerEvolutionDuPatrimoine()
@@ -165,46 +140,6 @@ namespace Cairn.Web.Components.ViewsModels
                 < 0 => "rouge",
                 _ => "blanc"
             };
-        }
-
-        private async Task LoadInvestissementMoyenMensuel()
-        {
-            InvestissementMoyenMensuel = await _fluxInvestissementService.CalculerInvestissementMedianMensuel(IdUser);
-            if (InvestissementMoyenMensuel == 0) InvestissementMoyenMensuel = 100;
-        }
-
-        private async Task CalculerInvestisseurDepuis()
-        {
-            var datePremierInvest = await _fluxInvestissementService.GetDatePremierFlux(IdUser);
-            if (datePremierInvest.HasValue)
-            {
-                var nbJours = (DateTime.UtcNow - datePremierInvest.Value.Date).Days;
-                NombreAnnes = nbJours / 365;
-                NombreMois = (nbJours % 365) / 30;
-            }
-        }
-
-        private async Task LoadValeurPatrimoineCourante(Dictionary<string, decimal> prixParActif)
-        {
-            try
-            {
-                ValeurPatrimoineCourante = await _fluxInvestissementService.CalculerValeurCourante(prixParActif, IdUser);
-            }
-            catch (Exception ex)
-            {
-                HasError = true;
-                ErrorMessage = ex.Message;
-            }
-        }
-
-        private async Task LoadValeurInvestissementTotale()
-        {
-            ValeurInvestissementTotal = await _fluxInvestissementService.CalculerValeurInvestissementTotal(IdUser);
-        }
-
-        private async Task LoadProportionParActif(Dictionary<string, decimal> prixParActif)
-        {
-            ValeurParActifInvestit = await _fluxInvestissementService.GetValeurParActifInvestit(prixParActif, IdUser);
         }
     }
 }

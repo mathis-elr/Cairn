@@ -133,7 +133,7 @@
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await DVM.LoadInfosProfil();
+                //await DVM.LoadInfosProfil();
                 StateHasChanged();
                 await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
             }

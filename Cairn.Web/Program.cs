@@ -1,11 +1,8 @@
 using Cairn.Web.Components.ViewsModels.Sources.CompteInvestissement;
-using Cairn.Web.Components.ViewsModels.Sources.CompteTradeRepublic;
-using Cairn.Web.Components.ViewsModels.CompteTradeRepublic.Onglets;
 using Cairn.Web.Components.ViewsModels.Sources.CompteCourant;
 using Cairn.Web.Components.ViewsModels.Authentification;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Cairn.Application.Interfaces.Repositories;
-using Cairn.Infrastructure.APIs.TradeRepublic;
 using Cairn.Infrastructure.APIs.YahooFinance;
 using Cairn.Application.Interfaces.Services;
 using Cairn.Application.Services.Encrypt;
@@ -46,7 +43,6 @@ builder.Services.AddDbContextFactory<InvestissementDbContext>(options =>
 // options
 builder.Services.Configure<CryptOptions>(builder.Configuration.GetSection("Security"));
 builder.Services.Configure<PowensApiOptions>(builder.Configuration.GetSection("PowensApi"));
-builder.Services.Configure<TradeRepublicApiOptions>(builder.Configuration.GetSection("TradeRepublicApi"));
 builder.Services.Configure<YahooFinanceApiOptions>(builder.Configuration.GetSection("YahooFinanceApi"));
 builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("LogoDevApi"));
 
@@ -54,7 +50,6 @@ builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("
 // services
 builder.Services.AddScoped<IPositionInvestissementService, PositionInvestissementService>();
 builder.Services.AddScoped<ICompteTradeRepubliqueService, CompteTradeRepubliqueService>();
-builder.Services.AddScoped<IFluxTradeRepublicService, FluxTradeRepublicService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
 builder.Services.AddScoped<IValeurPatrimoineService, ValeurPatrimoineService>();
 builder.Services.AddScoped<ICompteBanqueService, CompteBanqueService>();
@@ -64,16 +59,11 @@ builder.Services.AddScoped<ICryptService, CryptService>();
 
 builder.Services.AddScoped<IYahooFinanceApiService, YahooFinanceApiService>();
 builder.Services.AddScoped<ILogoDevApiService, LogoDevApiService>();
-builder.Services.AddHttpClient<ITradeRepublicApiService, TradeRepublicApiService>();
 builder.Services.AddHttpClient<IPowensApiService, PowensApiService>();
 
 
 // views models
-builder.Services.AddScoped<TradeRepublicTransactionsViewModel>();
-builder.Services.AddScoped<TradeRepublicAllocationViewModel>();
-builder.Services.AddScoped<TradeRepublicEvolutionViewModel>();
 builder.Services.AddScoped<CompteInvestissementViewModel>();
-builder.Services.AddScoped<CompteTradeRepublicViewModel>();
 builder.Services.AddScoped<CompteCourantViewModel>();
 builder.Services.AddScoped<InscriptionViewModel>();
 builder.Services.AddScoped<PatrimoineViewModel>();
@@ -84,7 +74,6 @@ builder.Services.AddScoped<SourcesViewModel>();
 
 // repositories
 builder.Services.AddScoped<IPositionInvestissementRepository, PositionInvestissementRepository>();
-builder.Services.AddScoped<IFluxTradeRepublicRepository, FluxTradeRepublicRepository>();
 builder.Services.AddScoped<ITradeRepublicAccesRepository, TradeRepublicAccesRepository>();
 builder.Services.AddScoped<IUtilisateurPowensRepository, UtilisateurPowensRepository>();
 builder.Services.AddScoped<IValeurPatrimoineRepository, ValeurPatrimoineRepository>();
@@ -98,7 +87,6 @@ builder.Services.AddScoped<IActifRepository, ActifRepository>();
 
 // workers
 builder.Services.AddHostedService<SynchronisationPositionsInvestissementWorker>();
-builder.Services.AddHostedService<EnregistrementValeurPatrimoineWorker>();
 builder.Services.AddHostedService<RecuperationSoldeComptesWorker>();
 builder.Services.AddSingleton<RecuperationFluxBancairesWorker>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<RecuperationFluxBancairesWorker>());
