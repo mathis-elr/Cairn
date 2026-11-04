@@ -5,14 +5,17 @@ using Cairn.Infrastructure.APIs.Powens;
 using Cairn.Web.GestionSession;
 using Cairn.Domain.Enums;
 using Microsoft.Extensions.Options;
+using Cairn.Application.DTO.MacroCategories;
 
 namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
 {
-    public class CompteCourantViewModel(IFluxBancaireService fluxBancaireService,
+    public class CompteCourantViewModel(IMacroCategorieService macroCategorieService,
+                                        IFluxBancaireService fluxBancaireService,
                                         IOptions<PowensApiOptions> options,
                                         IPowensApiService powensApiService,
                                         SessionService sessionService)
     {
+        private readonly IMacroCategorieService _macroCategorieService = macroCategorieService;
         private readonly IFluxBancaireService _fluxBancaireService = fluxBancaireService;
         private readonly IPowensApiService _powensApiService = powensApiService;
         private readonly PowensApiOptions _powensApiOptions = options.Value;
@@ -29,6 +32,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         public void NotifyStateChanged() => OnChange?.Invoke();
 
         // FLUX BANCAIRES
+        public List<MacroCategorieDto> MacroCategories { get; set; } = [];
         public List<FluxBancaireDto> FluxCompte { get; set; } = [];
         public List<FluxBancaireDto> FluxCourant => FluxCompte
                 .Where(f => f.CompteBancaireId == CompteCourant.Id)
@@ -118,8 +122,8 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
                 CompteCourant = sourceSelectionnee;
 
                 await Task.WhenAll(
-                    LoadFluxCompte()
-                    //LoadCategories()
+                    LoadFluxCompte(),
+                    LoadMacroCategories()
                 );
 
                 await LoadBudgetParCategorie();
@@ -221,10 +225,10 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
             FluxCompte = await _fluxBancaireService.GetFluxByCompteId(CompteCourant.Id);
         }
 
-        //private async Task LoadCategories()
-        //{
-        //    Categories = await _fluxBancaireService.GetCategorieFlux();
-        //}
+        private async Task LoadMacroCategories()
+        {
+            MacroCategories = await _macroCategorieService.GetAll();
+        }
 
         private async Task LoadBudgetParCategorie()
         {

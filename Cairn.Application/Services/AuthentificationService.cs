@@ -3,12 +3,15 @@ using Cairn.Application.Interfaces.Services;
 using Cairn.Application.DTO.Auth;
 using Cairn.Domain.Modeles;
 using Microsoft.AspNetCore.Identity;
+using Flurl.Util;
 
 namespace Cairn.Application.Services
 {
-    public class AuthentificationService(IUtilisateurRepository utilisateurRepository) : IAuthentificationService
+    public class AuthentificationService(IUtilisateurRepository utilisateurRepository,
+                                         IMacroCategorieService macroCategorieService) : IAuthentificationService
     {
         private readonly IUtilisateurRepository _utilisateurRepository = utilisateurRepository; 
+        private readonly IMacroCategorieService _macroCategorieService = macroCategorieService;
 
         public async Task<int> Inscription(InscriptionDto infosInscription)
         {
@@ -25,6 +28,8 @@ namespace Cairn.Application.Services
             };
 
             await _utilisateurRepository.Add(newUser);
+
+            await _macroCategorieService.InitialiserAsync(newUser.Id);
 
             return newUser.Id;
         }

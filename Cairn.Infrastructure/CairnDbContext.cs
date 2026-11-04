@@ -1,7 +1,5 @@
 using Cairn.Domain.Modeles;
-using Cairn.Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace Cairn.Infrastructure
 {
@@ -28,9 +26,6 @@ namespace Cairn.Infrastructure
         {
             // Configurations tables
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CairnDbContext).Assembly);
-
-            // Seeders
-            //CategorieFluxSeeder.Seed(modelBuilder);
         }
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

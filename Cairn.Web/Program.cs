@@ -50,6 +50,7 @@ builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("
 // services
 builder.Services.AddScoped<IPositionInvestissementService, PositionInvestissementService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
+builder.Services.AddScoped<IMacroCategorieService, MacroCategorieService>();
 builder.Services.AddScoped<ICompteBanqueService, CompteBanqueService>();
 builder.Services.AddScoped<IFluxBancaireService, FluxBancaireService>();
 builder.Services.AddScoped<IActifService, ActifService>();
@@ -73,6 +74,7 @@ builder.Services.AddScoped<SourcesViewModel>();
 // repositories
 builder.Services.AddScoped<IPositionInvestissementRepository, PositionInvestissementRepository>();
 builder.Services.AddScoped<IUtilisateurPowensRepository, UtilisateurPowensRepository>();
+builder.Services.AddScoped<IMacroCategorieRepository, MacroCategorieRepository>();
 builder.Services.AddScoped<ICompteBanqueRepository, CompteBanqueRepository>();
 builder.Services.AddScoped<IFluxBancaireRepository, FluxBancaireRepository>();
 builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();

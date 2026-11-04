@@ -13,52 +13,55 @@
         <_EmptyStateCard Icone="icons/wallet.svg"
                          Titre="Aucune source synchronisée"
                          Description="Connectez votre première première source afin de récupérer les flux de vos compte et les analyser."
-                         TexteBouton="Synchroniser ma première source"
-                         OnClick="@SynchroniserSource" />
+                         TexteBouton="Ajouter ma première source"
+                         OnClick="@AjouterSource" />
+    </div>
+}
+else
+{
+    <div class="sources">
+        <div class="liste-sources">
+            <div class="sources-existantes@(SVM.AucuneSource ? "flou" : "")">
+                @if (!SVM.AucuneSource)
+                {
+                    @foreach (var source in SVM.Sources)
+                    {
+                        <_Source Source="@source" Selectionne="@SVM.SourceSelectionne"
+                                 OnClick="@(async () => await SVM.ChangerSourceSelectionne(source))"
+                                 OnNomChanged="@(async (nouvelleSource) => await SVM.MettreAJourNomSource(nouvelleSource))" />
+                    }
+                }
+                else
+                {
+                    <p>Aucun comptes synchornisé</p>
+                }
+            </div>
+
+            <button class="btn-ajouter" @onclick="@AjouterSource">+</button>
+        </div>
+
+
+
+        @switch (SVM.SourceSelectionne?.TypeCompte)
+        {
+            case null:
+                break;
+
+            case TypeCompte.Epargne:
+                <CompteEpargne />
+                break;
+
+            case TypeCompte.Investissement:
+                <CompteInvestissement @key="SVM.SourceSelectionne.Id" SourceSelectionne="SVM.SourceSelectionne" />
+                break;
+
+            default:
+                <CompteCourant @key="SVM.SourceSelectionne.Id" SourceSelectionnee="SVM.SourceSelectionne" />
+                break;
+        }
     </div>
 }
 
-<div class="sources">
-    <div class="liste-sources">
-        <div class="sources-existantes@(SVM.AucuneSource ? "flou" : "")">
-            @if (!SVM.AucuneSource)
-            {
-                @foreach (var source in SVM.Sources)
-                {
-                    <_Source Source="@source" Selectionne="@SVM.SourceSelectionne" 
-                        OnClick="@(async () => await SVM.ChangerSourceSelectionne(source))"
-                        OnNomChanged="@(async (nouvelleSource) => await SVM.MettreAJourNomSource(nouvelleSource))" />
-                }
-            }
-            else
-            {
-                <p>Aucun comptes synchornisé</p>
-            }
-        </div>
-
-        <button class="btn-ajouter" @onclick="@SynchroniserSource">+</button>
-    </div>
-
-
-
-    @switch (SVM.SourceSelectionne?.TypeCompte)
-    {
-        case null:
-            break;
-
-        case TypeCompte.Epargne:
-            <CompteEpargne />
-            break;
-
-        case TypeCompte.Investissement:
-            <CompteInvestissement @key="SVM.SourceSelectionne.Id" SourceSelectionne="SVM.SourceSelectionne" />
-            break;
-
-        default:
-            <CompteCourant @key="SVM.SourceSelectionne.Id" SourceSelectionnee="SVM.SourceSelectionne" />
-            break;
-    }
-</div>
 
 @code {
     private CancellationTokenSource _cts = new();
@@ -97,7 +100,7 @@
         }
     }
 
-    private async Task SynchroniserSource()
+    private async Task AjouterSource()
     {
         await SVM.InitialiserUrlConnexionPowens();
         if (SVM.HasErreur) TS.ShowError(SVM.MessageErreur);

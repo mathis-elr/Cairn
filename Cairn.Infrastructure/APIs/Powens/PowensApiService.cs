@@ -85,11 +85,6 @@ namespace Cairn.Infrastructure.APIs.Powens
 
         public async Task CreeNouvelUtilisateur(int userId)
         {
-            var utilisateurExistant = await _utilisateurPowensRepository.GetByUserId(userId);
-
-            if (utilisateurExistant != null)
-                return;
-
             var accesDictionnary = new Dictionary<string, string>();
             accesDictionnary.Add("client_id", _options.ClientId);
             accesDictionnary.Add("client_secret", _options.ClientSecret);
