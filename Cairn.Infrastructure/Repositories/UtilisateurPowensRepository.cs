@@ -4,15 +4,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class UtilisateurPowensRepository(IDbContextFactory<InvestissementDbContext> dbContext) : IUtilisateurPowensRepository
+    public class UtilisateurPowensRepository(IDbContextFactory<CairnDbContext> dbContext) : IUtilisateurPowensRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<UtilisateurPowens?> GetByUserId(int userId)
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.UtilisateurPowens
-                .Include(u => u.Banques)
+                .Include(u => u.Utilisateur)
+                    .ThenInclude(u => u.Banques)
                 .Where(u => u.UtilisateurId == userId)
                 .FirstOrDefaultAsync();
         }

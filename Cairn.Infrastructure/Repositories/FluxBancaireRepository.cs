@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class FluxBancaireRepository(IDbContextFactory<InvestissementDbContext> dbContext) : IFluxBancaireRepository
+    public class FluxBancaireRepository(IDbContextFactory<CairnDbContext> dbContext) : IFluxBancaireRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<DateTime?> GetDateDernierFluxByCompteId(int compteId)
         {
@@ -23,8 +23,8 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.FluxBancaire
-                .Where(f => f.UtilisateurId == userId)
-                .Include(f => f.Categorie)
+                .Where(f => f.CompteBanque.Banque.UtilisateurId == userId)
+                .Include(f => f.MicroCategorie)
                 .ToListAsync();
         }
 
@@ -33,7 +33,7 @@ namespace Cairn.Infrastructure.Repositories
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.FluxBancaire
                 .Where(f => f.CompteBanqueId == compteId)
-                .Include(f => f.Categorie)
+                .Include(f => f.MicroCategorie)
                 .ToListAsync();
         }
 
@@ -42,7 +42,7 @@ namespace Cairn.Infrastructure.Repositories
             await using var context = await _dbFactory.CreateDbContextAsync();
 
             return await context.FluxBancaire
-                .Where(f => f.IdCategorie == null)
+                .Where(f => f.MicroCategorie == null)
                 .ToListAsync();
         }
 
@@ -51,32 +51,33 @@ namespace Cairn.Infrastructure.Repositories
             await using var context = await _dbFactory.CreateDbContextAsync();
 
             return await context.FluxBancaire
-                .Where(f => f.IdCategorie != null)
-                .GroupBy(f => f.Libelle.Trim().ToLower())
-                .ToDictionaryAsync(g => g.Key, g => g.First().IdCategorie);
+                .Where(f => f.MicroCategorieId != null)
+                .GroupBy(f => f.LibellePowens.Trim().ToLower())
+                .ToDictionaryAsync(g => g.Key, g => g.First().MicroCategorieId);
         }
 
         public async Task<List<BudgetCategorieRawDto>> GetBudgetParMacroCategorieParMois(int compteId)
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
 
-            return await context.FluxBancaire
-                .Where(f => f.CompteBanqueId == compteId)
-                .Where(f => f.IdCategorie != null)
-                .Where(f => f.Categorie!.MacroCategorie != null)
-                .GroupBy(t => new
-                {
-                    t.Date.Year,
-                    t.Date.Month,
-                    t.Categorie!.MacroCategorie
-                })
-                .Select(d => new BudgetCategorieRawDto
-                {
-                    Categorie = d.Key.MacroCategorie!,
-                    Date = new DateTime(d.Key.Year, d.Key.Month, 1),
-                    BudgetCategorie = d.Sum(f => f.Valeur)
-                })
-                .ToListAsync();
+            //return await context.FluxBancaire
+            //    .Where(f => f.CompteBanqueId == compteId)
+            //    .Where(f => f.MicroCategorieId != null)
+            //    .Where(f => f.MicroCategorie!.MacroCategorie != null)
+            //    .GroupBy(t => new
+            //    {
+            //        t.Date.Year,
+            //        t.Date.Month,
+            //        t.MicroCategorie!.MacroCategorie
+            //    })
+            //    .Select(d => new BudgetCategorieRawDto
+            //    {
+            //        Categorie = d.Key.MacroCategorie,
+            //        Date = new DateTime(d.Key.Year, d.Key.Month, 1),
+            //        BudgetCategorie = d.Sum(f => f.Valeur)
+            //    })
+            //    .ToListAsync();
+            throw new NotImplementedException("Cette méthode n'est pas encore implémentée. Elle nécessite une refonte de la structure des catégories.");
         }
 
         public async Task AddRangeForUserId(List<FluxBancaireImportDto> flux, int userId, int compteId)
@@ -84,7 +85,7 @@ namespace Cairn.Infrastructure.Repositories
             await using var context = await _dbFactory.CreateDbContextAsync();
 
             var idsExistants = (await context.FluxBancaire
-                .Where(f => f.UtilisateurId == userId)
+                .Where(f => f.CompteBanque.Banque.UtilisateurId == userId)
                 .Select(f => f.Id)
                 .ToListAsync())
                 .ToHashSet();
@@ -96,8 +97,7 @@ namespace Cairn.Infrastructure.Repositories
                     Id = f.Id,
                     Date = f.Date,
                     Valeur = f.Valeur,
-                    Libelle = f.Libelle ?? string.Empty,
-                    UtilisateurId = userId,
+                    LibellePowens = f.Libelle ?? string.Empty,
                     CompteBanqueId = compteId
                 });
 
@@ -114,7 +114,7 @@ namespace Cairn.Infrastructure.Repositories
 
             var fluxMensuelEnregistree = await context.FluxBancaire
                 .Where(f => idVM.Contains(f.Id))
-                .Where(f => f.UtilisateurId == userId)
+                .Where(f => f.CompteBanque.Banque.UtilisateurId == userId)
                 .ToListAsync();
 
             var fluxDic = fluxMensuelEnregistree.ToDictionary(e => e.Id);
@@ -123,9 +123,9 @@ namespace Cairn.Infrastructure.Repositories
             {
                 if (fluxDic.TryGetValue(fluxVm.Id, out var fluxEnregistre))
                 {
-                    fluxEnregistre.Libelle = fluxVm.Libelle;
-                    fluxEnregistre.IdCategorie = fluxVm.IdCategorie == 0 ? null : fluxVm.IdCategorie;
-                    fluxEnregistre.Suggestion = false;
+                    fluxEnregistre.LibellePersonnalise = fluxVm.Libelle;
+                    fluxEnregistre.MicroCategorieId = fluxVm.IdCategorie == 0 ? null : fluxVm.IdCategorie;
+                    fluxEnregistre.EstSuggestion = false;
                 }
             }
 

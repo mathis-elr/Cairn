@@ -6,9 +6,9 @@ using Cairn.Application.DTO.FluxBancaires;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class CompteBanqueRepository(IDbContextFactory<InvestissementDbContext> dbContext) : ICompteBanqueRepository
+    public class CompteBanqueRepository(IDbContextFactory<CairnDbContext> dbContext) : ICompteBanqueRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<IEnumerable<CompteBanque>> GetAllNonInvestissement()
         {
@@ -16,7 +16,8 @@ namespace Cairn.Infrastructure.Repositories
             return await context.CompteBanque
                 .Where(c => c.TypeCompte != TypeCompte.Investissement)
                 .Include(c => c.Banque)
-                    .ThenInclude(b => b.UtilisateurPowens)
+                    .ThenInclude(b => b.Utilisateur)
+                        .ThenInclude(u => u.UtilisateurPowens)
                 .ToListAsync();
         }
 
@@ -26,7 +27,8 @@ namespace Cairn.Infrastructure.Repositories
             return await context.CompteBanque
                 .Where(c => c.TypeCompte == TypeCompte.Investissement)
                 .Include(c => c.Banque)
-                    .ThenInclude(b => b.UtilisateurPowens)
+                    .ThenInclude(b => b.Utilisateur)
+                        .ThenInclude(u => u.UtilisateurPowens)
                 .ToListAsync();
         }
 
@@ -44,8 +46,9 @@ namespace Cairn.Infrastructure.Repositories
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
                 .Include(c => c.Banque)
-                    .ThenInclude(b => b.UtilisateurPowens)
-                .Where(c => c.Banque.UtilisateurPowens.UtilisateurId == userId)
+                    .ThenInclude(b => b.Utilisateur)
+                        .ThenInclude(u => u.UtilisateurPowens)
+                .Where(c => c.Banque.UtilisateurId == userId)
                 .ToListAsync();
         }
 
@@ -54,7 +57,8 @@ namespace Cairn.Infrastructure.Repositories
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
                 .Include(c => c.Banque)
-                    .ThenInclude(b => b.UtilisateurPowens)
+                    .ThenInclude(b => b.Utilisateur)
+                        .ThenInclude(u => u.UtilisateurPowens)
                 .Where(c => c.Id == id)
                 .FirstOrDefaultAsync();
         }
@@ -66,7 +70,7 @@ namespace Cairn.Infrastructure.Repositories
             var compte = await context.CompteBanque.FindAsync(source.Id);
             if (compte != null)
             {
-                compte.Nom = source.NomCompte;
+                compte.NomPersonnalise = source.NomCompte;
                 context.CompteBanque.Update(compte);
                 await context.SaveChangesAsync();
             }

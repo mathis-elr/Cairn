@@ -5,10 +5,8 @@ using Cairn.Domain.Modeles;
 
 namespace Cairn.Application.Services
 {
-    public class FluxBancaireService(ICategorieFluxRepository categorieFluxRepository,  
-                                     IFluxBancaireRepository fluxBancaireRepository) : IFluxBancaireService
+    public class FluxBancaireService(IFluxBancaireRepository fluxBancaireRepository) : IFluxBancaireService
     {
-        private readonly ICategorieFluxRepository _categorieFluxRepository = categorieFluxRepository;
         private readonly IFluxBancaireRepository _fluxBancaireRepository = fluxBancaireRepository;
 
         public async Task<DateTime?> GetDateDernierFlux(int compteId)
@@ -20,44 +18,34 @@ namespace Cairn.Application.Services
         {
             var flux = await _fluxBancaireRepository.GetByUserId(userId);
 
-            return flux.Select(f => new FluxBancaireDto
-            {
-                Id = f.Id,
-                Date = f.Date,
-                Valeur = f.Valeur,
-                Libelle = f.Libelle,
-                IdCategorie = f.Categorie == null ? 0 : f.Categorie.Id,
-                Suggestion = f.Suggestion,
-                CompteBancaireId = f.CompteBanqueId
-            }).ToList();
+            //return flux.Select(f => new FluxBancaireDto
+            //{
+            //    Id = f.Id,
+            //    Date = f.Date,
+            //    Valeur = f.Valeur,
+            //    Libelle = f.Libelle,
+            //    IdCategorie = f.Categorie == null ? 0 : f.Categorie.Id,
+            //    Suggestion = f.Suggestion,
+            //    CompteBancaireId = f.CompteBanqueId
+            //}).ToList();
+            throw new NotImplementedException("Not implemented yet.");
+
         }
 
         public async Task<List<FluxBancaireDto>> GetFluxByCompteId(int compteId)
         {
             var flux = await _fluxBancaireRepository.GetByCompteId(compteId);
-            return flux.Select(f => new FluxBancaireDto
-            {
-                Id = f.Id,
-                Date = f.Date,
-                Valeur = f.Valeur,
-                Libelle = f.Libelle,
-                IdCategorie = f.Categorie == null ? 0 : f.Categorie.Id,
-                Suggestion = f.Suggestion,
-                CompteBancaireId = f.CompteBanqueId
-            }).ToList();
-        }
-
-        public async Task<IEnumerable<CategorieFluxDto>> GetCategorieFlux()
-        {
-            var categories = await _categorieFluxRepository.GetAll();
-
-            return categories.Select(c => new CategorieFluxDto
-            {
-                Id = c.Id,
-                Libelle = c.MicroCategorie,
-            })
-                .OrderBy(f => f.Libelle)
-                .ToList();
+            //return flux.Select(f => new FluxBancaireDto
+            //{
+            //    Id = f.Id,
+            //    Date = f.Date,
+            //    Valeur = f.Valeur,
+            //    Libelle = f.Libelle,
+            //    IdCategorie = f.Categorie == null ? 0 : f.Categorie.Id,
+            //    Suggestion = f.Suggestion,
+            //    CompteBancaireId = f.CompteBanqueId
+            //}).ToList();
+            throw new NotImplementedException("Not implemented yet.");
         }
 
         public async Task DeterminerCategorieFlux()
@@ -65,20 +53,21 @@ namespace Cairn.Application.Services
             var fluxSansCategorie = await _fluxBancaireRepository.GetAllSansCategorie();
             var dicCorrespondanceFluxBancaire = await _fluxBancaireRepository.GetCorrespondancesCategories();
 
-            var fluxModifies = new List<FluxBancaire>();
+            //var fluxModifies = new List<FluxBancaire>();
 
-            foreach (var flux in fluxSansCategorie)
-            {
-                if (dicCorrespondanceFluxBancaire.TryGetValue(flux.Libelle.ToLower(), out int? idCategorie))
-                {
-                    flux.IdCategorie = idCategorie;
-                    flux.Suggestion = true;
-                    fluxModifies.Add(flux);
-                }
-            }
+            //foreach (var flux in fluxSansCategorie)
+            //{
+            //    if (dicCorrespondanceFluxBancaire.TryGetValue(flux.Libelle.ToLower(), out int? idCategorie))
+            //    {
+            //        flux.IdCategorie = idCategorie;
+            //        flux.Suggestion = true;
+            //        fluxModifies.Add(flux);
+            //    }
+            //}
 
-            if (fluxModifies.Count != 0)
-                await _fluxBancaireRepository.UpdateRangeSuggestions(fluxModifies);
+            //if (fluxModifies.Count != 0)
+            //    await _fluxBancaireRepository.UpdateRangeSuggestions(fluxModifies);
+            throw new NotImplementedException("Not implemented yet.");
         }
 
         public async Task<IEnumerable<BudgetsParCategorieDto>> CalculerBudgetCategorieParMois(int compteId)

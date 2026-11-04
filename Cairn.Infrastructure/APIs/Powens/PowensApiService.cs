@@ -9,6 +9,7 @@ using Cairn.Domain.Modeles;
 using Cairn.Infrastructure.APIs.Powens.Responses;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
+using System.Numerics;
 using System.Text.Json;
 
 namespace Cairn.Infrastructure.APIs.Powens
@@ -149,7 +150,7 @@ namespace Cairn.Infrastructure.APIs.Powens
                     Nom = await GetNomBanque(tokenClair, connection.IdConnector),
                     StatutConnexion = StatutConnexionExtension.ToStatutConnexion(connection.PowensState),
                     DerniereSynchro = connection.LastUpdate,
-                    UtilisateurPowensId = utilisateurPowens.Id,
+                    UtilisateurId = userId,
                 };
                 await _banqueAccesRepository.Add(newBanque);
                 idBanque = newBanque.Id;
@@ -194,7 +195,7 @@ namespace Cairn.Infrastructure.APIs.Powens
 
         public async Task GetTransactions(DateTime dateDebut, DateTime dateFin, CompteBanque compteBanque)
         {
-            var utilisateurPowens = compteBanque.Banque.UtilisateurPowens;
+            var utilisateurPowens = compteBanque.Banque.Utilisateur.UtilisateurPowens ?? throw new Exception("Aucun utilisateur powens est associé à ce compte.");
             var tokenClair = _encryptService.Decrypt(utilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
 
             await RafraichissementCompteBancaire(tokenClair, compteBanque.Banque.IdConnectionPowens);
@@ -202,7 +203,7 @@ namespace Cairn.Infrastructure.APIs.Powens
 
             var dateDebutString = dateDebut.ToString("yyyy-MM-dd");
             var dateFinString = dateFin.ToString("yyyy-MM-dd");
-            var requete = $"{_options.AccountsEndPoint}/{compteBanque.IdComptePowens}/transactions?min_date={dateDebutString}&max_date={dateFinString}&limit=500";
+            var requete = $"{_options.AccountsEndPoint}/{compteBanque.IdPowens}/transactions?min_date={dateDebutString}&max_date={dateFinString}&limit=500";
 
             var reponse = await RequeteAvecToken(HttpMethod.Get, tokenClair, requete);
 
@@ -225,13 +226,13 @@ namespace Cairn.Infrastructure.APIs.Powens
         public async Task<List<PositionInvestissementImportDto>?> GetPositionInvestissements(CompteBanque compteBanque)
         {
             var compte = await _compteBanqueRepository.GetById(compteBanque.Id) ?? throw new Exception("Aucun compte bancaire associe");
-            var utilisateurPowens = compte.Banque.UtilisateurPowens;
+            var utilisateurPowens = compte.Banque.Utilisateur.UtilisateurPowens ?? throw new Exception("Aucun utilisateur powens est associé à ce compte.");
             var tokenClair = _encryptService.Decrypt(utilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
 
             await RafraichissementCompteBancaire(tokenClair, compteBanque.Banque.IdConnectionPowens);
             await Task.Delay(5000);
 
-            var reponse = await RequeteAvecToken(HttpMethod.Get, tokenClair, string.Format(_options.InvestEndPoint, compte.IdComptePowens));
+            var reponse = await RequeteAvecToken(HttpMethod.Get, tokenClair, string.Format(_options.InvestEndPoint, compte.IdPowens));
 
             var reponseString = await reponse.Content.ReadAsStringAsync();
             var investissements = JsonSerializer.Deserialize<PowensInvestissementsApiResponse>(reponseString);
@@ -261,13 +262,14 @@ namespace Cairn.Infrastructure.APIs.Powens
 
             foreach(var banque in banques)
             {
-                var tokenClair = _encryptService.Decrypt(banque.UtilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
+                var utilisateurPowens = banque.Utilisateur.UtilisateurPowens ?? throw new Exception("Aucun utilisateur powens est associé à ce compte.");
+                var tokenClair = _encryptService.Decrypt(utilisateurPowens.AccessTokenCrypte, _optionsEncryption.MasterKey);
                 var comptesPowens = await GetComptes(tokenClair, banque.IdConnectionPowens);
                 var comptesPowensDict = comptesPowens.ToDictionary(c => c.Id);
 
-                foreach(var compte in banque.Comptes)
+                foreach(var compte in banque.ComptesBanques)
                 {
-                    if(!comptesPowensDict.TryGetValue(compte.IdComptePowens, out var comptePowens))
+                    if(!comptesPowensDict.TryGetValue(compte.IdPowens, out var comptePowens))
                         continue;
 
                     if(compte.Solde != comptePowens.Solde)
@@ -335,7 +337,7 @@ namespace Cairn.Infrastructure.APIs.Powens
         {
             var nouvelUtilisateur = new UtilisateurPowens
             {
-                IdUtilisateurPowens = idUtilisateurPowens,
+                IdPowens = idUtilisateurPowens,
                 AccessTokenCrypte = _encryptService.Encrypt(token, _optionsEncryption.MasterKey),
                 UtilisateurId = userId,
             };
@@ -347,14 +349,14 @@ namespace Cairn.Infrastructure.APIs.Powens
             var comptes = await GetComptes(token, connectionBanqueId);
 
             var comptesExistants = await _compteBanqueRepository.GetAllByBanqueId(banqueIdLocal);
-            var nouveauxComptes = comptes.Where(c => !comptesExistants.Any(ce => ce.IdComptePowens == c.Id)).ToList();
+            var nouveauxComptes = comptes.Where(c => !comptesExistants.Any(ce => ce.IdPowens == c.Id)).ToList();
 
             foreach (var compte in nouveauxComptes)
             {
                 var newCompte = new CompteBanque
                 {
-                    IdComptePowens = compte.Id,
-                    Nom = compte?.NomCompte ?? "Inconnue",
+                    IdPowens = compte.Id,
+                    NomPowens = compte?.NomCompte ?? "Inconnue",
                     TypePowens = compte?.Type ?? "Inconnu",
                     TypeCompte = TypeCompteExtensions.ToTypeCompte(compte?.Type),
                     Solde = compte?.Solde ?? 0,

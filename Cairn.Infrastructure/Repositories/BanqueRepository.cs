@@ -4,15 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class BanqueRepository(IDbContextFactory<InvestissementDbContext> dbContext) : IBanqueRepository
+    public class BanqueRepository(IDbContextFactory<CairnDbContext> dbContext) : IBanqueRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<IEnumerable<Banque>> GetAll()
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.Banque
-                .Include(b => b.UtilisateurPowens)
+                .Include(b => b.Utilisateur)
                 .ToListAsync();
         }
 
@@ -20,9 +20,9 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.Banque
-                .Include(b => b.UtilisateurPowens)
-                .Include(b => b.Comptes)
-                .Where(b => b.UtilisateurPowens.UtilisateurId == userId)
+                .Include(b => b.Utilisateur)
+                .Include(b => b.ComptesBanques)
+                .Where(b => b.Utilisateur.Id == userId)
                 .FirstOrDefaultAsync();
         }
 
@@ -30,18 +30,18 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.Banque
-                    .Include(b => b.Comptes)
-                    .Include(b => b.UtilisateurPowens)
-                    .FirstOrDefaultAsync(b => b.Comptes.Any(c => c.Id == compteId));
+                    .Include(b => b.ComptesBanques)
+                    .Include(b => b.Utilisateur)
+                    .FirstOrDefaultAsync(b => b.ComptesBanques.Any(c => c.Id == compteId));
         }
 
         public async Task<IEnumerable<Banque>> GetAllByUserId(int userId)
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.Banque
-                .Include(b => b.UtilisateurPowens)
-                .Include(b => b.Comptes)
-                .Where(b => b.UtilisateurPowens.UtilisateurId == userId)
+                .Include(b => b.Utilisateur)
+                .Include(b => b.ComptesBanques)
+                .Where(b => b.UtilisateurId == userId)
                 .ToListAsync();
         }
 

@@ -1,6 +1,6 @@
 ﻿namespace Cairn.Domain.Enums
 {
-    public enum StatutConnexion
+    public enum StatutConnexion : byte
     {
         Valide = 0,               // Tout roule
         ReconnexionRequise = 1,   // Action utilisateur nécessaire (SCA, mot de passe changé, etc.)

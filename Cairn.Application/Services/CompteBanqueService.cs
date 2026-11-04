@@ -18,7 +18,7 @@ namespace Cairn.Application.Services
             {
                 Id = c.Id,
                 NomSource = c.Banque.Nom,
-                NomCompte = c.Nom,
+                NomCompte = c.NomPersonnalise ?? c.NomPowens,
                 TypeCompte = c.TypeCompte,
                 LogoUrl = _logoDevApiService.GetUrlLogoByName(c.Banque.Nom),
                 StatutConnexion = c.Banque.StatutConnexion,

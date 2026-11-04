@@ -17,7 +17,7 @@ namespace Cairn.Application.Services
 
         public async Task<IEnumerable<string>> GetTickers()
         {
-            return await _actifRepository.GetAllTickers();
+            return await _actifRepository.GetAllSymboles();
         }
 
         public string NettoyerLibelle(string libelle)

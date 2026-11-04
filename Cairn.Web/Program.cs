@@ -37,7 +37,7 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddDbContextFactory<InvestissementDbContext>(options =>
+builder.Services.AddDbContextFactory<CairnDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString")));
 
 // options
@@ -49,9 +49,7 @@ builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("
 
 // services
 builder.Services.AddScoped<IPositionInvestissementService, PositionInvestissementService>();
-builder.Services.AddScoped<ICompteTradeRepubliqueService, CompteTradeRepubliqueService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
-builder.Services.AddScoped<IValeurPatrimoineService, ValeurPatrimoineService>();
 builder.Services.AddScoped<ICompteBanqueService, CompteBanqueService>();
 builder.Services.AddScoped<IFluxBancaireService, FluxBancaireService>();
 builder.Services.AddScoped<IActifService, ActifService>();
@@ -74,10 +72,7 @@ builder.Services.AddScoped<SourcesViewModel>();
 
 // repositories
 builder.Services.AddScoped<IPositionInvestissementRepository, PositionInvestissementRepository>();
-builder.Services.AddScoped<ITradeRepublicAccesRepository, TradeRepublicAccesRepository>();
 builder.Services.AddScoped<IUtilisateurPowensRepository, UtilisateurPowensRepository>();
-builder.Services.AddScoped<IValeurPatrimoineRepository, ValeurPatrimoineRepository>();
-builder.Services.AddScoped<ICategorieFluxRepository, CategorieFluxRepository>();
 builder.Services.AddScoped<ICompteBanqueRepository, CompteBanqueRepository>();
 builder.Services.AddScoped<IFluxBancaireRepository, FluxBancaireRepository>();
 builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();

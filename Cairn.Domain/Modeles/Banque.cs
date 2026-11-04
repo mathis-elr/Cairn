@@ -6,18 +6,19 @@ namespace Cairn.Domain.Modeles
     {
         public int Id { get; set; }
 
-        public required int IdConnectionPowens { get; set; }
+        public int IdConnectionPowens { get; set; }
 
-        public required int IdConnectorPowens { get; set; }
+        public int IdConnectorPowens { get; set; }
 
         public required string Nom { get; set; }
 
         public StatutConnexion StatutConnexion { get; set; }
         public DateTime? DerniereSynchro { get; set; }
 
-        public ICollection<CompteBanque> Comptes { get; set; } = [];
+        public int UtilisateurId { get; set; }
+        public Utilisateur Utilisateur { get; set; } = null!;
 
-        public int UtilisateurPowensId { get; set; }
-        public UtilisateurPowens UtilisateurPowens { get; set; } = null!;
+        public ICollection<CompteBanque> ComptesBanques { get; set; } = [];
+
     }
 }

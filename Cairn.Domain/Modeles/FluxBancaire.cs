@@ -3,23 +3,21 @@ namespace Cairn.Domain.Modeles
     public class FluxBancaire
     {
         public int Id { get; set; }
+        public int IdPowens { get; set; }
 
         public DateTime Date { get; set; }
 
         public decimal Valeur { get; set; }
 
-        public required string Libelle { get; set; }
+        public required string LibellePowens { get; set; }
+        public string? LibellePersonnalise { get; set; }
 
-        public int? IdCategorie { get; set; }
-        public CategorieFlux Categorie { get; set; } = null!;
+        public bool EstSuggestion { get; set; } = false;
+        public int? MicroCategorieId { get; set; }
+        public MicroCategorie? MicroCategorie { get; set; }
 
-        public bool Suggestion { get; set; } = false;
-
-        public int? CompteBanqueId { get; set; }
-        public CompteBanque? CompteBanque { get; set; }
-
-        public int UtilisateurId { get; set; }
-        public Utilisateur Utilisateur { get; set; } = null!;
+        public int CompteBanqueId { get; set; }
+        public CompteBanque CompteBanque { get; set; } = null!;
     }
 }
 

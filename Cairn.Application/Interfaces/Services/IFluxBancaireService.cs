@@ -10,8 +10,6 @@ namespace Cairn.Application.Interfaces.Services
 
         Task<List<FluxBancaireDto>> GetFluxByCompteId(int compteId);
 
-        Task<IEnumerable<CategorieFluxDto>> GetCategorieFlux();
-
         Task<IEnumerable<BudgetsParCategorieDto>> CalculerBudgetCategorieParMois(int compteId);
 
         Task AddFluxBancaire(List<FluxBancaireImportDto>? flux, int userId, int comptePowensId);

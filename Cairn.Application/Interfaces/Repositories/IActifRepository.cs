@@ -6,7 +6,7 @@ namespace Cairn.Application.Interfaces.Repositories
     {
         Task<List<Actif>> GetAll();
 
-        Task<IEnumerable<string>> GetAllTickers();
+        Task<IEnumerable<string>> GetAllSymboles();
 
         Task<int> Add(Actif actif);
 

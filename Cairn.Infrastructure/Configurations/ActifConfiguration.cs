@@ -8,9 +8,8 @@ namespace Cairn.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Actif> builder)
         {
-            builder.Property(e => e.ISIN)
-                .HasMaxLength(12)
-                .IsFixedLength();
+            builder.HasIndex(e => e.IdPowens)
+                .IsUnique();
         }
     }
 }

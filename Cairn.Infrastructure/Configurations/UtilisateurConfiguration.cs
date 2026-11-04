@@ -11,10 +11,8 @@ namespace Cairn.Infrastructure.Configurations
             builder.HasIndex(u => u.Email)
                 .IsUnique();
 
-            builder.HasOne(u => u.UtilisateurPowens)
-                .WithOne(up => up.Utilisateur)
-                .HasForeignKey<UtilisateurPowens>(up => up.UtilisateurId)
-                .OnDelete(DeleteBehavior.Cascade);
+            builder.Property(u => u.Prenom)
+                .HasMaxLength(50);
         }
     }
 }

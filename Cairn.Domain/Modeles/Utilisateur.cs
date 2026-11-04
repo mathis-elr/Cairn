@@ -12,8 +12,10 @@
 
         public DateTime DateCreationCompte { get; set; }
 
-        public ICollection<Banque> BanquesAcces { get; set; } = [];
-
         public UtilisateurPowens? UtilisateurPowens { get; set; }
+
+        public ICollection<Banque> Banques { get; set; } = [];
+
+        public ICollection<MacroCategorie> MacroCategories { get; set; } = [];
     }
 }

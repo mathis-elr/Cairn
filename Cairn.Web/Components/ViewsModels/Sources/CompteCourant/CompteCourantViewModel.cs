@@ -118,8 +118,8 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
                 CompteCourant = sourceSelectionnee;
 
                 await Task.WhenAll(
-                    LoadFluxCompte(),
-                    LoadCategories()
+                    LoadFluxCompte()
+                    //LoadCategories()
                 );
 
                 await LoadBudgetParCategorie();
@@ -221,10 +221,10 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
             FluxCompte = await _fluxBancaireService.GetFluxByCompteId(CompteCourant.Id);
         }
 
-        private async Task LoadCategories()
-        {
-            Categories = await _fluxBancaireService.GetCategorieFlux();
-        }
+        //private async Task LoadCategories()
+        //{
+        //    Categories = await _fluxBancaireService.GetCategorieFlux();
+        //}
 
         private async Task LoadBudgetParCategorie()
         {

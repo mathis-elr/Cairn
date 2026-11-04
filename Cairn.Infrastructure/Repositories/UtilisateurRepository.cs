@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class UtilisateurRepository(IDbContextFactory<InvestissementDbContext> dbContext) : IUtilisateurRepository
+    public class UtilisateurRepository(IDbContextFactory<CairnDbContext> dbContext) : IUtilisateurRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<Utilisateur?> GetByEmail(string email)
         {

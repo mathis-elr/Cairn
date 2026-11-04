@@ -8,8 +8,13 @@ namespace Cairn.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<CompteBanque> builder)
         {
-            builder.Property(c => c.Solde)
-                .HasPrecision(18, 2);
+            builder.HasIndex(c => c.IdPowens)
+                .IsUnique();
+
+            builder.HasOne(c => c.Banque)
+                .WithMany(b => b.ComptesBanques)
+                .HasForeignKey(c => c.BanqueId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

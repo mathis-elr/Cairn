@@ -8,19 +8,23 @@ namespace Cairn.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<FluxBancaire> builder)
         {
-            builder.Property(h => h.Id)
-                .ValueGeneratedNever();
+            builder.HasIndex(f => f.IdPowens)
+                .IsUnique();
 
-            builder.Property(h => h.Date)
-                .IsRequired();
-            builder.Property(h => h.Valeur)
-                .HasPrecision(18, 2)
-                .IsRequired();
+            builder.Property(f => f.Date)
+                .HasColumnType("date");
 
-            builder.HasOne(h => h.Categorie)
-                .WithMany()
-                .HasForeignKey(h => h.IdCategorie)
+            builder.HasOne(f => f.MicroCategorie)
+                .WithMany(c => c.FluxBancaires)
+                .HasForeignKey(f => f.MicroCategorieId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(f => f.CompteBanque)
+                .WithMany(f => f.FluxBancaires)
+                .HasForeignKey(f => f.CompteBanqueId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasIndex(f => new { f.CompteBanqueId, f.Date });
         }
     }
 }

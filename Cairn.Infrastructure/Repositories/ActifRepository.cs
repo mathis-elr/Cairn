@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class ActifRepository(IDbContextFactory<InvestissementDbContext> dbContext) : IActifRepository
+    public class ActifRepository(IDbContextFactory<CairnDbContext> dbContext) : IActifRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<List<Actif>> GetAll()
         {
@@ -14,12 +14,12 @@ namespace Cairn.Infrastructure.Repositories
             return await context.Actif.ToListAsync();
         }
 
-        public async Task<IEnumerable<string>> GetAllTickers()
+        public async Task<IEnumerable<string>> GetAllSymboles()
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
-            return await context.FluxTradeRepublic
-                .Where(f => f.Actif.Ticker != null)
-                .Select(f => f.Actif.Ticker!)
+            return await context.Actif
+                .Where(f => f.Symbole != null)
+                .Select(f => f.Symbole!)
                 .Distinct()
                 .ToListAsync();
         }

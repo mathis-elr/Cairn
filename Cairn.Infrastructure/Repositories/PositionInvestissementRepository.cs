@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cairn.Infrastructure.Repositories
 {
-    public class PositionInvestissementRepository(IDbContextFactory<InvestissementDbContext> dbContext) : IPositionInvestissementRepository
+    public class PositionInvestissementRepository(IDbContextFactory<CairnDbContext> dbContext) : IPositionInvestissementRepository
     {
-        private readonly IDbContextFactory<InvestissementDbContext> _dbFactory = dbContext;
+        private readonly IDbContextFactory<CairnDbContext> _dbFactory = dbContext;
 
         public async Task<List<PositionInvestissement>> GetByCompteBanqueId(int compteId)
         {
