@@ -131,6 +131,8 @@ namespace Cairn.Infrastructure.APIs.Powens
             var utilisateurPowens = await _utilisateurPowensRepository.GetByUserId(userId) ?? throw new Exception("Aucun utilisateur powens est associé à ce compte.");
             var tokenClair = _encryptService.Decrypt(utilisateurPowens!.AccessTokenCrypte, _optionsEncryption.MasterKey);
 
+
+
             var banquesEnregistrees = await _banqueAccesRepository.GetAllByUserId(userId);
             var connection = await GetConnection(tokenClair, connectionBanqueId);
 

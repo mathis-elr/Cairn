@@ -1,8 +1,12 @@
-﻿namespace Cairn.Application.DTO.FluxBancaires
+﻿using Cairn.Domain.Enums;
+
+namespace Cairn.Application.DTO.FluxBancaires
 {
-    public class BudgetCategorieRawDto
+    public class BudgetRoleMacroCategorieRawDto
     {
-        public string Categorie { get; set; } = string.Empty;
+        public required RoleCategorie RoleMacroCategorie { get; set; }
+
+        public required string CouleurHexa { get; set; }
 
         public DateTime Date { get; set; }
 

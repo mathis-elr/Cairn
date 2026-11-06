@@ -35,17 +35,17 @@ namespace Cairn.Application.Services
         public async Task<List<FluxBancaireDto>> GetFluxByCompteId(int compteId)
         {
             var flux = await _fluxBancaireRepository.GetByCompteId(compteId);
-            //return flux.Select(f => new FluxBancaireDto
-            //{
-            //    Id = f.Id,
-            //    Date = f.Date,
-            //    Valeur = f.Valeur,
-            //    Libelle = f.Libelle,
-            //    IdCategorie = f.Categorie == null ? 0 : f.Categorie.Id,
-            //    Suggestion = f.Suggestion,
-            //    CompteBancaireId = f.CompteBanqueId
-            //}).ToList();
-            throw new NotImplementedException("Not implemented yet.");
+
+            return flux.Select(f => new FluxBancaireDto
+            {
+                Id = f.Id,
+                Date = f.Date,
+                Valeur = f.Valeur,
+                Libelle = f.LibellePersonnalise ?? f.LibellePowens,
+                IdCategorie = f.MicroCategorie == null ? 0 : f.MicroCategorie.Id,
+                EstSuggestion = f.EstSuggestion,
+                CompteBancaireId = f.CompteBanqueId
+            }).ToList();
         }
 
         public async Task DeterminerCategorieFlux()
@@ -70,9 +70,9 @@ namespace Cairn.Application.Services
             throw new NotImplementedException("Not implemented yet.");
         }
 
-        public async Task<IEnumerable<BudgetsParCategorieDto>> CalculerBudgetCategorieParMois(int compteId)
+        public async Task<IEnumerable<BudgetsByRoleMacroCategorieDto>> GetBudgetMensuelByMacroCategorie(int compteId)
         {
-            var rawData = await _fluxBancaireRepository.GetBudgetParMacroCategorieParMois(compteId);
+            var rawData = await _fluxBancaireRepository.GetBudgetMensuelByRoleMacroCategorie(compteId);
 
             var moisPossibles = rawData
                 .Select(r => r.Date)
@@ -80,16 +80,23 @@ namespace Cairn.Application.Services
                 .OrderBy(d => d);
 
             return rawData
-                .GroupBy(r => r.Categorie!)
+                .GroupBy(r => {
+                    return new
+                    {
+                        r.RoleMacroCategorie,
+                        r.CouleurHexa,
+                    };
+                })
                 .Select(g =>
                 {
                     var budgetsParDate = g.ToDictionary(
                         x => x.Date,
                         x => x.BudgetCategorie);
 
-                    return new BudgetsParCategorieDto
+                    return new BudgetsByRoleMacroCategorieDto
                     {
-                        Categorie = g.Key,
+                        RoleCategorie = g.Key.RoleMacroCategorie,
+                        CouleurHexa = g.Key.CouleurHexa,
                         BudgetCategorieParMois = moisPossibles
                             .Select(m => new BudgetParMoisLineChartDto
                             {

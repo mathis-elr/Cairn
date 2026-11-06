@@ -51,7 +51,7 @@
                 {
                     <ApexPointSeries TItem="BudgetParMoisLineChartDto"
                                      Items="categorie.BudgetCategorieParMois"
-                                     Name="@categorie.Categorie"
+                                     Name="@categorie.RoleCategorie.ToString()"
                                      SeriesType="SeriesType.Line"
                                      YValue="@(e => e.Budget)"
                                      XValue="@(e => e.Date)" />
@@ -61,16 +61,15 @@
         </div>
 
         <div class="legende">
-            @for (int i = 0; i < Model.BudgetLineCharts.Count(); i++)
+            @foreach (var budgetLine in Model.BudgetLineCharts.OrderByDescending(b => b.BudgetCategorieParMois.Sum(b => b.Budget)))
             {
-                var categorie = Model.BudgetLineCharts.ElementAt(i);
-                var couleur = Model.CouleursGraphique[i % Model.CouleursGraphique.Count];
-                var moyenne = categorie.BudgetCategorieParMois.Average(b => b.Budget);
+                var couleur = budgetLine.CouleurHexa;
+                var moyenne = budgetLine.BudgetCategorieParMois.Average(b => b.Budget);
 
                 <div class="categorie">
                     <div class="categorie-header">
                         <span class="pastille" style="background-color: @couleur;"></span>
-                        <span class="nom-cat">@categorie.Categorie</span>
+                        <span class="nom-cat">@budgetLine.RoleCategorie.ToString()</span>
                     </div>
                     <label class="@(moyenne > 0 ? "vert" : "rouge")">@moyenne.ToString("C")</label>
                 </div>

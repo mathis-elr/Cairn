@@ -2,6 +2,7 @@
 using Cairn.Application.DTO.FluxBancaires;
 using Cairn.Domain.Modeles;
 using Microsoft.EntityFrameworkCore;
+using Cairn.Domain.Enums;
 
 namespace Cairn.Infrastructure.Repositories
 {
@@ -56,28 +57,31 @@ namespace Cairn.Infrastructure.Repositories
                 .ToDictionaryAsync(g => g.Key, g => g.First().MicroCategorieId);
         }
 
-        public async Task<List<BudgetCategorieRawDto>> GetBudgetParMacroCategorieParMois(int compteId)
+        public async Task<List<BudgetRoleMacroCategorieRawDto>> GetBudgetMensuelByRoleMacroCategorie(int compteId)
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
 
-            //return await context.FluxBancaire
-            //    .Where(f => f.CompteBanqueId == compteId)
-            //    .Where(f => f.MicroCategorieId != null)
-            //    .Where(f => f.MicroCategorie!.MacroCategorie != null)
-            //    .GroupBy(t => new
-            //    {
-            //        t.Date.Year,
-            //        t.Date.Month,
-            //        t.MicroCategorie!.MacroCategorie
-            //    })
-            //    .Select(d => new BudgetCategorieRawDto
-            //    {
-            //        Categorie = d.Key.MacroCategorie,
-            //        Date = new DateTime(d.Key.Year, d.Key.Month, 1),
-            //        BudgetCategorie = d.Sum(f => f.Valeur)
-            //    })
-            //    .ToListAsync();
-            throw new NotImplementedException("Cette méthode n'est pas encore implémentée. Elle nécessite une refonte de la structure des catégories.");
+            return await context.FluxBancaire
+                .AsNoTracking()
+                .Where(f => f.CompteBanqueId == compteId)
+                .Where(f => f.MicroCategorieId != null)
+                .Where(f => f.MicroCategorie!.MacroCategorie != null)
+                .Where(f => f.MicroCategorie!.MacroCategorie.Role != RoleCategorie.Neutre)
+                .GroupBy(t => new
+                {
+                    t.Date.Year,
+                    t.Date.Month,
+                    t.MicroCategorie!.MacroCategorie.Role,
+                    t.MicroCategorie!.MacroCategorie.CouleurHexa
+                })
+                .Select(d => new BudgetRoleMacroCategorieRawDto
+                {
+                    RoleMacroCategorie = d.Key.Role,
+                    CouleurHexa = d.Key.CouleurHexa,
+                    Date = new DateTime(d.Key.Year, d.Key.Month, 1),
+                    BudgetCategorie = d.Sum(f => f.Valeur)
+                })
+                .ToListAsync();
         }
 
         public async Task AddRangeForUserId(List<FluxBancaireImportDto> flux, int userId, int compteId)

@@ -1,7 +1,7 @@
 ﻿@page "/sources"
 @attribute [Authorize]
 @inject SourcesViewModel SVM
-@inject RecuperationFluxBancairesWorker BankWorker
+@* @inject RecuperationFluxBancairesWorker BankWorker *@
 @inject IToastService TS
 @inject NavigationManager Nav
 
@@ -78,8 +78,8 @@ else
         if (SyncStatus == "ok")
         {
             TS.ShowSuccess("Banque synchronisée avec succès !");
-            TS.ShowInfo("Synchronisation des flux lancée en arrière-plan ...");
-            BankWorker.DeclencherSynchronisationImmediate(SVM.IdUser);
+            // TS.ShowInfo("Synchronisation des flux lancée en arrière-plan ...");
+            // BankWorker.DeclencherSynchronisationImmediate(SVM.IdUser);
             SyncStatus = null;
         }
         else if (SyncStatus == "error")

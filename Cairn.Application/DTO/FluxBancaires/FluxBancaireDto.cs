@@ -13,7 +13,7 @@ namespace Cairn.Application.DTO.FluxBancaires
 
         public int IdCategorie { get; set; }
 
-        public bool Suggestion { get; set; }
+        public bool EstSuggestion { get; set; }
 
         public int? CompteBancaireId { get; set; }
     }

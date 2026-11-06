@@ -15,7 +15,7 @@ namespace Cairn.Application.Interfaces.Repositories
 
         Task<Dictionary<string, int?>> GetCorrespondancesCategories();
 
-        Task<List<BudgetCategorieRawDto>> GetBudgetParMacroCategorieParMois(int compteId);
+        Task<List<BudgetRoleMacroCategorieRawDto>> GetBudgetMensuelByRoleMacroCategorie(int compteId);
 
         Task AddRangeForUserId(List<FluxBancaireImportDto> flux, int userId, int comptePowensId);
 

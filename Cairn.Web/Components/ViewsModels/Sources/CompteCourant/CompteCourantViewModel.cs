@@ -6,16 +6,20 @@ using Cairn.Web.GestionSession;
 using Cairn.Domain.Enums;
 using Microsoft.Extensions.Options;
 using Cairn.Application.DTO.MacroCategories;
+using Cairn.Application.DTO.MicroCategories;
+using Cairn.Domain.Modeles;
 
 namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
 {
     public class CompteCourantViewModel(IMacroCategorieService macroCategorieService,
+                                        IMicroCategorieService microCategorieService,
                                         IFluxBancaireService fluxBancaireService,
                                         IOptions<PowensApiOptions> options,
                                         IPowensApiService powensApiService,
                                         SessionService sessionService)
     {
         private readonly IMacroCategorieService _macroCategorieService = macroCategorieService;
+        private readonly IMicroCategorieService _microCategorieService = microCategorieService;
         private readonly IFluxBancaireService _fluxBancaireService = fluxBancaireService;
         private readonly IPowensApiService _powensApiService = powensApiService;
         private readonly PowensApiOptions _powensApiOptions = options.Value;
@@ -42,12 +46,10 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         public IEnumerable<PeriodeBudget> PeriodeBudgetPossibles => Enum.GetValues<PeriodeBudget>();
         public PeriodeBudget PeriodeBudgetSelectionnee { get; set; } = PeriodeBudget.Tout;
 
-        public IEnumerable<BudgetsParCategorieDto> BudgetLineCharts { get; set; } = [];
-        public List<string> CouleursGraphique = new List<string> { "#22c55e", "#3b82f6", "#ef4444", "#eab308" };
+        public IEnumerable<BudgetsByRoleMacroCategorieDto> BudgetLineCharts { get; set; } = [];
 
         public decimal DepensesMoyennnes => BudgetLineCharts
-            .Where(b => b.Categorie.Equals("Vie quotidienne", StringComparison.OrdinalIgnoreCase)
-                     || b.Categorie.Equals("Loisirs/Plaisirs", StringComparison.OrdinalIgnoreCase))
+            .Where(b => b.RoleCategorie == RoleCategorie.Depense)
             .SelectMany(b => b.BudgetCategorieParMois)
             .GroupBy(m => m.Date)
             .Select(g => g.Sum(m => m.Budget))
@@ -55,13 +57,13 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
             .Average();
 
         public decimal TauxEpargne => BudgetLineCharts
-            .SelectMany(b => b.BudgetCategorieParMois, (b, m) => new { b.Categorie, m.Budget })
+            .SelectMany(b => b.BudgetCategorieParMois, (b, m) => new { b.RoleCategorie, m.Budget })
             .GroupBy(_ => 1)
             .Select(g =>
             {
-                var revenus = g.Where(x => x.Categorie.Equals("Revenus", StringComparison.OrdinalIgnoreCase))
+                var revenus = g.Where(x => x.RoleCategorie == RoleCategorie.Revenu)
                                .Sum(x => x.Budget);
-                var epargne = g.Where(x => x.Categorie.Equals("Patrimoine", StringComparison.OrdinalIgnoreCase))
+                var epargne = g.Where(x => x.RoleCategorie == RoleCategorie.Epargne || x.RoleCategorie == RoleCategorie.Investissement)
                                .Sum(x => x.Budget);
                 return revenus == 0 ? 0 : Math.Abs(epargne) / revenus;
             })
@@ -87,7 +89,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         public List<FluxBancaireDto> FluxMensuel { get; set; } = [];
         public List<FluxBancaireDto> CreditsFluxMensuel => FluxMensuel.Where(f => f.Valeur >= 0).ToList();
         public List<FluxBancaireDto> DebitsFluxMensuel => FluxMensuel.Where(f => f.Valeur < 0).ToList();
-        public IEnumerable<CategorieFluxDto> Categories { get; set; } = [];
+        public IEnumerable<MicroCategorieDto> MicroCategories { get; set; } = [];
         public List<ValeurParCategorieBarChartDto> StatsGraphique { get; set; } = [];
         public bool ActionEnCours { get; set; } = false;
 
@@ -123,7 +125,8 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
 
                 await Task.WhenAll(
                     LoadFluxCompte(),
-                    LoadMacroCategories()
+                    LoadMacroCategories(),
+                    LoadMicroCategories()
                 );
 
                 await LoadBudgetParCategorie();
@@ -225,6 +228,11 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
             FluxCompte = await _fluxBancaireService.GetFluxByCompteId(CompteCourant.Id);
         }
 
+        private async Task LoadMicroCategories()
+        {
+            MicroCategories = await _microCategorieService.GetAll();
+        }
+
         private async Task LoadMacroCategories()
         {
             MacroCategories = await _macroCategorieService.GetAll();
@@ -232,7 +240,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
 
         private async Task LoadBudgetParCategorie()
         {
-            BudgetLineCharts = await _fluxBancaireService.CalculerBudgetCategorieParMois(CompteCourant.Id);
+            BudgetLineCharts = await _fluxBancaireService.GetBudgetMensuelByMacroCategorie(CompteCourant.Id);
         }
 
         //private async Task RafraichirGraphique()
@@ -257,7 +265,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
                 .GroupBy(f => f.IdCategorie)
                 .Select(g => new ValeurParCategorieBarChartDto
                 {
-                    Categorie = Categories.FirstOrDefault(c => c.Id == g.Key)?.Libelle ?? "Inconnu",
+                    Categorie = MicroCategories.FirstOrDefault(c => c.Id == g.Key)?.Libelle ?? "Inconnu",
                     Valeur = g.Sum(f => f.Valeur),
                 })
                 .Where(g => g.Valeur != 0)
