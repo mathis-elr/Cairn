@@ -14,6 +14,20 @@ namespace Cairn.Infrastructure.Repositories
             return await context.Actif.ToListAsync();
         }
 
+        public async Task<Actif?> GetByCodeOuLibelle(string? code, string libelle)
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+
+            var query = context.Actif.AsNoTracking();
+
+            query = code != null
+                ? query.Where(a => a.CodePowens == code)
+                : query.Where(a => a.Libelle == libelle); 
+
+            return await query.FirstOrDefaultAsync();
+        }
+
+
         public async Task<IEnumerable<string>> GetAllSymboles()
         {
             await using var context = await _dbFactory.CreateDbContextAsync();

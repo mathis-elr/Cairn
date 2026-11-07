@@ -1,5 +1,4 @@
 ﻿using Cairn.Infrastructure.APIs.Powens.Converters;
-using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace Cairn.Infrastructure.APIs.Powens.Responses
@@ -7,7 +6,7 @@ namespace Cairn.Infrastructure.APIs.Powens.Responses
     public class PowensConnectionApiResponse
     {
         [JsonPropertyName("id_connector")]
-        public int IdConnector { get; set; }
+        public int? IdConnector { get; set; }
 
         [JsonPropertyName("state")]
         public string? PowensState { get; set; }

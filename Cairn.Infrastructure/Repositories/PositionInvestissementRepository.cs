@@ -18,8 +18,19 @@ namespace Cairn.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<PositionInvestissement>> GetByCompteBanqueIdSansInclude(int compteBanqueId)
+        {
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            return await context.PositionInvestissement
+                .AsNoTracking()
+                .Where(p => p.CompteBanqueId == compteBanqueId)
+                .ToListAsync();
+        }
+
         public async Task AddRange(List<PositionInvestissement> positions)
         {
+            if (positions.Count == 0) return;
+
             await using var context = await _dbFactory.CreateDbContextAsync();
             await context.AddRangeAsync(positions);
             await context.SaveChangesAsync();
@@ -27,9 +38,21 @@ namespace Cairn.Infrastructure.Repositories
 
         public async Task UpdateRange(List<PositionInvestissement> positions)
         {
+            if (positions.Count == 0) return;
+
             await using var context = await _dbFactory.CreateDbContextAsync();
             context.UpdateRange(positions);
             await context.SaveChangesAsync();
+        }
+
+        public async Task DeleteByIds(List<int> ids)
+        {
+            if (ids.Count == 0) return;
+
+            await using var context = await _dbFactory.CreateDbContextAsync();
+            await context.PositionInvestissement
+                .Where(p => ids.Contains(p.Id))
+                .ExecuteDeleteAsync();
         }
     }
 }

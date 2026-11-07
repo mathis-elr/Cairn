@@ -5,6 +5,9 @@ namespace Cairn.Infrastructure.APIs.Powens.Responses
 {
     public class PowensPositionInvestApiResponse
     {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
         [JsonPropertyName("code_type")]
         public string? CodeType { get; set; } 
 
@@ -15,13 +18,16 @@ namespace Cairn.Infrastructure.APIs.Powens.Responses
         public string Label { get; set; } = string.Empty;
 
         [JsonPropertyName("quantity")]
-        public decimal Quantite { get; set; }
+        public decimal? Quantite { get; set; }
 
         [JsonPropertyName("unitprice")]
-        public decimal PrixAchat { get; set; }
+        public decimal? PrixAchat { get; set; }
 
         [JsonPropertyName("unitvalue")]
-        public decimal PrixCourant { get; set; }
+        public decimal? PrixCourant { get; set; }
+
+        [JsonPropertyName("valuation")]
+        public decimal? Valorisation { get; set; }
 
         [JsonPropertyName("vdate")]
         [JsonConverter(typeof(PowensDateTimeConverter))]

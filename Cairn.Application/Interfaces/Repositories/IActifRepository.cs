@@ -6,6 +6,8 @@ namespace Cairn.Application.Interfaces.Repositories
     {
         Task<List<Actif>> GetAll();
 
+        Task<Actif?> GetByCodeOuLibelle(string? code, string libelle);
+
         Task<IEnumerable<string>> GetAllSymboles();
 
         Task<int> Add(Actif actif);

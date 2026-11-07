@@ -5,12 +5,14 @@ using Cairn.Web.GestionSession;
 
 namespace Cairn.Web.Components.ViewsModels.Sources
 {
-    public class SourcesViewModel(ICompteBanqueService compteBanqueService,
-                                  IPowensApiService powensApiService,
+    public class SourcesViewModel(ISynchronisationPowensService synchronisationPowensService,
+                                  ICompteBanqueService compteBanqueService,
+                                  IBanqueService banqueService,
                                   SessionService sessionService)
     {
+        private readonly ISynchronisationPowensService _synchronisationPowensService = synchronisationPowensService;
         private readonly ICompteBanqueService _compteBanqueService = compteBanqueService;
-        private readonly IPowensApiService _powensApiService = powensApiService;
+        private readonly IBanqueService _banqueService = banqueService;
         private readonly SessionService _sessionService = sessionService;
 
         // CONNEXION BANQUE
@@ -61,7 +63,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources
 
             try
             {
-                await _powensApiService.SaveBanque(connectionBanqueId, IdUser);
+                await _banqueService.SaveBanque(connectionBanqueId, IdUser);
             }
             catch (Exception ex)
             {
@@ -79,7 +81,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources
         {
             try
             {
-                UrlConnexionPowens = await _powensApiService.GetUrlConnexionPowens(IdUser);
+                UrlConnexionPowens = await _synchronisationPowensService.GetUrlConnexionPowens(IdUser);
             }
             catch (Exception ex)
             {
@@ -90,7 +92,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources
 
         public async Task MettreAJourNomSource(SourceDto source)
         {
-            await _compteBanqueService.UpdateNom(source);
+            await _compteBanqueService.UpdateNom(source, IdUser);
         }
 
         private async Task InitialiserSession()

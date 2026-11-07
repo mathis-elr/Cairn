@@ -2,7 +2,7 @@
 
 @if (Model.PositionsInvestissement.Any())
 {
-    <ApexChart TItem="PositionInvestissementDto"
+    @* <ApexChart TItem="PositionInvestissementDto"
                Options="SourceCompteInvestissementChartsOptions.OptionsPiePositions">
 
         <ApexPointSeries TItem="PositionInvestissementDto"
@@ -12,7 +12,7 @@
                          YAggregate="@(e => e.Sum(p => p.ValeurCourante))"
                          OrderByDescending="e => e.Y"
                          ShowDataLabels />
-    </ApexChart>
+    </ApexChart> *@
 }
 else if (Model.ActionEnCours)
 {

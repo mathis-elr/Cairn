@@ -1,29 +1,19 @@
-using Cairn.Application.DTO;
-using Cairn.Domain.Enums;
-using Cairn.Domain.Modeles;
-
+using Cairn.Application.DTO.Powens;
 namespace Cairn.Application.Interfaces.APIs
 {
     public interface IPowensApiService
     {
-        Task<string> GetUrlConnexionPowens(int idUser);
+        Task<string> GetUrlConnexion(string token);
+        Task<string> GetUrlReconnexion(string token, int idConnectionPowens);
 
-        Task<string> GetUrlReconnexionPowens(int idUser, int compteId);
+        Task<string> GenerateCodeTemporaire(string tokenClair);
+        Task<UtilisateurImportDto> CreeNouvelUtilisateur(int userId);
 
-        Task CreeNouvelUtilisateur(int userId);
+        Task<IEnumerable<CompteImportDto>> GetComptes(string token, int connectionBanqueId);
+        Task<string> GetNomBanque(string token, int idConnector);
+        Task<ConnectionImportDto> GetConnection(string token, int connectionBanqueId);
 
-        Task VerifierUtilisateurPowensExists(int userId);
-
-        Task<string> GenerateCodeTemporaireByUserId(int userId);
-
-        Task SaveBanque(int connectionId, int userId);
-
-        Task VerifierEtSynchroniserFluxBancairesAsync();
-
-        Task GetTransactions(DateTime dateDebut, DateTime dateFin, CompteBanque compteBanque);
-
-        Task<List<PositionInvestissementImportDto>?> GetPositionInvestissements(CompteBanque compteBanque);
-
-        Task SynchroniserSoldeComptes();
+        Task<List<FluxBancaireImportDto>> GetTransactions(string tokenClair, int idComptePowens, DateTime? depuis);
+        Task<List<PositionInvestImportDto>> GetPositionInvestissements(string tokenClair, int idComptePowens);
     }
 }

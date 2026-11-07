@@ -17,7 +17,7 @@ namespace Cairn.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.23")
+                .HasAnnotation("ProductVersion", "8.0.24")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -328,7 +328,7 @@ namespace Cairn.Infrastructure.Migrations
                     b.Property<int>("IdPowens")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("PrixAchat")
+                    b.Property<decimal?>("PrixAchat")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
 

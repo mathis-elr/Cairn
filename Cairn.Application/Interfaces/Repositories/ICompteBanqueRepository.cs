@@ -1,26 +1,19 @@
-﻿using Cairn.Application.DTO.FluxBancaires;
-using Cairn.Domain.Modeles;
+﻿using Cairn.Domain.Modeles;
 
 namespace Cairn.Application.Interfaces.Repositories
 {
     public interface ICompteBanqueRepository
     {
         Task<IEnumerable<CompteBanque>> GetAllNonInvestissement();
-
         Task<IEnumerable<CompteBanque>> GetAllInvestissement();
-
         Task<IEnumerable<CompteBanque>> GetAllByBanqueId(int banqueId);
-
-        Task<List<CompteBanque>> GetAllByUserId(int userId);
-
+        Task<IEnumerable<CompteBanque>> GetAllByUserId(int userId);
         Task<CompteBanque?> GetById(int id);
 
-        Task UpdateNom(SourceDto source);
+        Task AddRange(List<CompteBanque> comptes);
 
-        Task Add(CompteBanque compte);
+        Task UpdateRange(List<CompteBanque> comptes);
+        Task UpdateNomPersonnalise(int compteId, int userId, string? nom);
 
-        Task Update(CompteBanque compte);
-
-        Task SaveChanges();
     }
 }

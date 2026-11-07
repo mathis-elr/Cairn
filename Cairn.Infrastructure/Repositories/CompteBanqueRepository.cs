@@ -2,7 +2,6 @@
 using Cairn.Domain.Modeles;
 using Cairn.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Cairn.Application.DTO.FluxBancaires;
 
 namespace Cairn.Infrastructure.Repositories
 {
@@ -14,10 +13,9 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
-                .Where(c => c.TypeCompte != TypeCompte.Investissement)
+                .AsNoTracking()
                 .Include(c => c.Banque)
-                    .ThenInclude(b => b.Utilisateur)
-                        .ThenInclude(u => u.UtilisateurPowens)
+                .Where(c => c.TypeCompte != TypeCompte.Investissement)
                 .ToListAsync();
         }
 
@@ -25,10 +23,9 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
-                .Where(c => c.TypeCompte == TypeCompte.Investissement)
+                .AsNoTracking()
                 .Include(c => c.Banque)
-                    .ThenInclude(b => b.Utilisateur)
-                        .ThenInclude(u => u.UtilisateurPowens)
+                .Where(c => c.TypeCompte == TypeCompte.Investissement)
                 .ToListAsync();
         }
 
@@ -36,15 +33,16 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
-                .Include(b => b.Banque)
-                .Where(b => b.Banque.Id == banqueId)
+                .AsNoTracking()
+                .Where(b => b.BanqueId== banqueId)
                 .ToListAsync();
         }
 
-        public async Task<List<CompteBanque>> GetAllByUserId(int userId)
+        public async Task<IEnumerable<CompteBanque>> GetAllByUserId(int userId)
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
+                .AsNoTracking()
                 .Include(c => c.Banque)
                     .ThenInclude(b => b.Utilisateur)
                         .ThenInclude(u => u.UtilisateurPowens)
@@ -56,6 +54,7 @@ namespace Cairn.Infrastructure.Repositories
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
             return await context.CompteBanque
+                .AsNoTracking()
                 .Include(c => c.Banque)
                     .ThenInclude(b => b.Utilisateur)
                         .ThenInclude(u => u.UtilisateurPowens)
@@ -63,37 +62,32 @@ namespace Cairn.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task UpdateNom(SourceDto source)
+        public async Task AddRange(List<CompteBanque> comptes)
         {
-            await using var context = await _dbFactory.CreateDbContextAsync();
+            if (comptes.Count == 0)
+                return;
 
-            var compte = await context.CompteBanque.FindAsync(source.Id);
-            if (compte != null)
-            {
-                compte.NomPersonnalise = source.NomCompte;
-                context.CompteBanque.Update(compte);
-                await context.SaveChangesAsync();
-            }
-        }
-
-        public async Task Add(CompteBanque compte)
-        {
             await using var context = await _dbFactory.CreateDbContextAsync();
-            await context.CompteBanque.AddAsync(compte);
+            await context.CompteBanque.AddRangeAsync(comptes);
             await context.SaveChangesAsync();
         }
 
-        public async Task Update(CompteBanque compte)
+        public async Task UpdateRange(List<CompteBanque> comptes)
         {
+            if (comptes.Count == 0)
+                return;
+
             await using var context = await _dbFactory.CreateDbContextAsync();
-            context.CompteBanque.Update(compte);
+            context.CompteBanque.UpdateRange(comptes);
             await context.SaveChangesAsync();
         }
 
-        public async Task SaveChanges()
+        public async Task UpdateNomPersonnalise(int compteId, int userId, string? nom)
         {
             await using var context = await _dbFactory.CreateDbContextAsync();
-            await context.SaveChangesAsync();
+            await context.CompteBanque
+                .Where(c => c.Id == compteId && c.Banque.UtilisateurId == userId)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.NomPersonnalise, nom));
         }
     }
 }

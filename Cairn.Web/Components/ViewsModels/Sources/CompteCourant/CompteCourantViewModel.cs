@@ -1,20 +1,16 @@
 ﻿using Cairn.Application.Interfaces.Services;
 using Cairn.Application.DTO.FluxBancaires;
 using Cairn.Application.Interfaces.APIs;
-using Cairn.Infrastructure.APIs.Powens;
 using Cairn.Web.GestionSession;
 using Cairn.Domain.Enums;
-using Microsoft.Extensions.Options;
 using Cairn.Application.DTO.MacroCategories;
 using Cairn.Application.DTO.MicroCategories;
-using Cairn.Domain.Modeles;
 
 namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
 {
     public class CompteCourantViewModel(IMacroCategorieService macroCategorieService,
                                         IMicroCategorieService microCategorieService,
                                         IFluxBancaireService fluxBancaireService,
-                                        IOptions<PowensApiOptions> options,
                                         IPowensApiService powensApiService,
                                         SessionService sessionService)
     {
@@ -22,7 +18,6 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         private readonly IMicroCategorieService _microCategorieService = microCategorieService;
         private readonly IFluxBancaireService _fluxBancaireService = fluxBancaireService;
         private readonly IPowensApiService _powensApiService = powensApiService;
-        private readonly PowensApiOptions _powensApiOptions = options.Value;
         private readonly SessionService _sessionService = sessionService;
 
         public SourceDto CompteCourant { get; set; } = null!;
@@ -36,11 +31,8 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         public void NotifyStateChanged() => OnChange?.Invoke();
 
         // FLUX BANCAIRES
-        public List<MacroCategorieDto> MacroCategories { get; set; } = [];
         public List<FluxBancaireDto> FluxCompte { get; set; } = [];
-        public List<FluxBancaireDto> FluxCourant => FluxCompte
-                .Where(f => f.CompteBancaireId == CompteCourant.Id)
-                .ToList();
+
 
         // RECAPITULATIF GLOBAL
         public IEnumerable<PeriodeBudget> PeriodeBudgetPossibles => Enum.GetValues<PeriodeBudget>();
@@ -89,6 +81,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         public List<FluxBancaireDto> FluxMensuel { get; set; } = [];
         public List<FluxBancaireDto> CreditsFluxMensuel => FluxMensuel.Where(f => f.Valeur >= 0).ToList();
         public List<FluxBancaireDto> DebitsFluxMensuel => FluxMensuel.Where(f => f.Valeur < 0).ToList();
+        public IEnumerable<MacroCategorieDto> MacroCategories { get; set; } = [];
         public IEnumerable<MicroCategorieDto> MicroCategories { get; set; } = [];
         public List<ValeurParCategorieBarChartDto> StatsGraphique { get; set; } = [];
         public bool ActionEnCours { get; set; } = false;
@@ -96,22 +89,6 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
         // GESTION D'ERREUR
         public string MessageErreur { get; set; } = string.Empty;
         public bool HasErreur { get; set; } = false;
-
-
-        public async Task FinaliserAjoutBanque(int connectionBanqueId)
-        {
-            await InitialiserSession();
-
-            try
-            {
-                await _powensApiService.SaveBanque(connectionBanqueId, IdUser);
-            }
-            catch (Exception ex)
-            {
-                HasErreur = true;
-                MessageErreur = ex.Message;
-            }
-        }
 
         public async Task StartLoadData(SourceDto sourceSelectionnee)
         {
@@ -131,7 +108,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
 
                 await LoadBudgetParCategorie();
 
-                DateDebut = FluxCourant.Count != 0 ? FluxCourant.Min(f => f.Date) : DateDebut;
+                DateDebut = FluxCompte.Count != 0 ? FluxCompte.Min(f => f.Date) : DateDebut;
                 DeterminerStatutMois();
             }
             finally
@@ -157,7 +134,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
             DateActive = date;
 
             DateEditMensuel = date;
-            FluxMensuel = FluxCourant
+            FluxMensuel = FluxCompte
                 .Where(f => f.Date.Month == date.Month && f.Date.Year == date.Year)
                 .OrderByDescending(f => f.Date)
                 .ToList();
@@ -175,7 +152,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
             if (FluxMensuel == null)
                 throw new Exception("Aucune données mensuel");
 
-            await _fluxBancaireService.UpdateFluxMensuel(FluxMensuel, IdUser);
+            await _fluxBancaireService.UpdateRange(FluxMensuel, IdUser);
 
             await LoadFluxCompte();
             LoadFluxUnMois(StatutMoisActif!);
@@ -299,7 +276,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
                     estMoisCourant ||
                     aujourdHui.Day < 5 && estMoisPrecedent;
 
-                var fluxDuMois = FluxCourant
+                var fluxDuMois = FluxCompte
                     .Where(f => f.Date.Year == dateCourante.Year &&
                                 f.Date.Month == dateCourante.Month)
                     .ToList();
@@ -327,20 +304,6 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteCourant
                     m.Date.Month == DateActive.Value.Month &&
                     m.Date.Year == DateActive.Value.Year);
             }
-        }
-
-        private async Task<string> GetUrlConnexionPowens()
-        {
-            await _powensApiService.VerifierUtilisateurPowensExists(IdUser);
-
-            var code = await _powensApiService.GenerateCodeTemporaireByUserId(IdUser);
-
-            var fullConnectUrl = new Uri(new Uri(_powensApiOptions.BaseUri), _powensApiOptions.ConnectEndPoint);
-
-            var encodedRedirect =
-                Uri.EscapeDataString(_powensApiOptions.RedirectUri);
-
-            return $"{fullConnectUrl}?client_id={_powensApiOptions.ClientId}&redirect_uri={encodedRedirect}&code={code}";
         }
     }
 }

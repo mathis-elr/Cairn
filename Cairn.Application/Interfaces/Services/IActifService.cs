@@ -8,10 +8,8 @@ namespace Cairn.Application.Interfaces.Services
 
         Task<IEnumerable<string>> GetTickers();
 
+        Task<int> GetActifId(string? code, string libelle);
+
         string NettoyerLibelle(string libelle);
-
-        Task<int> AddActif(Actif actif);
-
-        Task UpdateActif(Actif actif);
     }
 }

@@ -1,5 +1,5 @@
-﻿using Cairn.Application.DTO;
-using Cairn.Application.DTO.FluxBancaires;
+﻿using Cairn.Application.DTO.FluxBancaires;
+using Cairn.Application.DTO.PositionsInvestissements;
 using Cairn.Application.Interfaces.APIs;
 using Cairn.Application.Interfaces.Services;
 using Cairn.Domain.Enums;
@@ -9,10 +9,12 @@ using System.Globalization;
 namespace Cairn.Web.Components.ViewsModels.Sources.CompteInvestissement
 {
     public class CompteInvestissementViewModel(IPositionInvestissementService positionInvestissementService,
+                                               ISynchronisationPowensService synchronisationPowensService,
                                                IPowensApiService powensApiService,
                                                SessionService sessionService)
     {
         private readonly IPositionInvestissementService _positionInvestissementService = positionInvestissementService;
+        private readonly ISynchronisationPowensService _synchronisationPowensService = synchronisationPowensService;
         private readonly IPowensApiService _powensApiService = powensApiService;
         private readonly SessionService _sessionService = sessionService;
 
@@ -35,9 +37,9 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteInvestissement
         public IEnumerable<PositionInvestissementDto> PositionsInvestissement { get; set; } = [];
         public string StatusSynchronisation { get; set; } = string.Empty;
         public string BadgeSynchronisation { get; set; } = string.Empty;
-        public decimal ValeureTotale => PositionsInvestissement.Sum(p => p.Quantite * p.PrixCourant);
-        public decimal ValeureInvesti => PositionsInvestissement.Sum(p => p.Quantite * p.PrixAchat);
-        public decimal VariationPourcentage => ValeureTotale == 0 ? 0 : (ValeureTotale - ValeureInvesti) / ValeureInvesti;
+        //public decimal ValeureTotale => PositionsInvestissement.Sum(p => p.Quantite * p.PrixCourant);
+        //public decimal ValeureInvesti => PositionsInvestissement.Sum(p => p.Quantite * p.PrixAchat);
+        //public decimal VariationPourcentage => ValeureTotale == 0 ? 0 : (ValeureTotale - ValeureInvesti) / ValeureInvesti;
 
         // GESTION ERREUR
         public bool HasError { get; set; } = false;
@@ -107,7 +109,7 @@ namespace Cairn.Web.Components.ViewsModels.Sources.CompteInvestissement
 
         private async Task SetUrlReconnection()
         {
-            UrlReconnectionPowens = await _powensApiService.GetUrlReconnexionPowens(IdUser, CompteInvestissementCourant.Id);
+            UrlReconnectionPowens = await _synchronisationPowensService.GetUrlReconnexionPowens(IdUser, CompteInvestissementCourant.Id);
         }
 
         private async Task InitialiserSession()

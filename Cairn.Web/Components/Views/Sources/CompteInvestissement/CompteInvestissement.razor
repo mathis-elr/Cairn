@@ -26,7 +26,7 @@
         </div>
 
         <div class="infos-compte">
-            <label class="@CVM.DeterminerClasse(CVM.ValeureTotale)">
+            @* <label class="@CVM.DeterminerClasse(CVM.ValeureTotale)">
                 @CVM.ValeureTotale.ToString("C2")
             </label>
 
@@ -35,8 +35,7 @@
                     @(CVM.VariationPourcentage > 0 ? "+" : "")@CVM.ToStringPourcentage(CVM.VariationPourcentage, "P2")
                 </span>
                 <span class="gris">depuis le depart</span>
-            </div>
-
+            </div> *@
         </div>
     </div>
 
@@ -71,7 +70,7 @@
                                 @foreach (var position in CVM.PositionsInvestissement)
                                 {
                                     <tr>
-                                        <td class="actif-cell font-medium">
+                                        @* <td class="actif-cell font-medium">
                                             <img class="icon" src="@position.UrlLogo" />
                                             @position.Actif.Libelle
                                         </td>
@@ -84,7 +83,7 @@
                                             <span class="pill-perf @CVM.DeterminerClasse(position.EvolutionPourcentage)">
                                                 @(position.EvolutionPourcentage > 0 ? "+" : "")@position.EvolutionPourcentage.ToString("P2")
                                             </span>
-                                        </td>
+                                        </td> *@
                                     </tr>
                                 }
                             }

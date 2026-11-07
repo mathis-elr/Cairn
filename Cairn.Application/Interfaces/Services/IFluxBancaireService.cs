@@ -4,17 +4,13 @@ namespace Cairn.Application.Interfaces.Services
 {
     public interface IFluxBancaireService
     {
-        Task<DateTime?> GetDateDernierFlux(int compteId);
-
-        Task<List<FluxBancaireDto>> GetFluxBancaire(int userId);
+        Task SynchroniserFluxBancairesAsync();
 
         Task<List<FluxBancaireDto>> GetFluxByCompteId(int compteId);
 
-        Task<IEnumerable<BudgetsByRoleMacroCategorieDto>> GetBudgetMensuelByMacroCategorie(int compteId);
+        Task<List<BudgetsByRoleMacroCategorieDto>> GetBudgetMensuelByMacroCategorie(int userId);
 
-        Task AddFluxBancaire(List<FluxBancaireImportDto>? flux, int userId, int comptePowensId);
-
-        Task UpdateFluxMensuel(List<FluxBancaireDto> fluxMensuelVM, int userId);
+        Task UpdateRange(List<FluxBancaireDto> fluxMensuelVM, int userId);
     }
 }
 

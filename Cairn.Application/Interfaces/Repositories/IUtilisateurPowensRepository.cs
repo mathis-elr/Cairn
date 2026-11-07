@@ -7,7 +7,5 @@ namespace Cairn.Application.Interfaces.Repositories
         Task<UtilisateurPowens?> GetByUserId(int userId);
 
         Task Add(UtilisateurPowens acces);
-
-        Task Update(UtilisateurPowens acces);
     }
 }

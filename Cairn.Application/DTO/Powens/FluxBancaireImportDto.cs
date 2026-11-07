@@ -1,4 +1,4 @@
-﻿namespace Cairn.Application.DTO.FluxBancaires
+﻿namespace Cairn.Application.DTO.Powens
 {
     public class FluxBancaireImportDto
     {

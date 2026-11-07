@@ -7,7 +7,7 @@
 
         public decimal Quantite { get; set; } 
         
-        public decimal PrixAchat { get; set; }    
+        public decimal? PrixAchat { get; set; }    
         
         public decimal PrixCourant { get; set; }
 

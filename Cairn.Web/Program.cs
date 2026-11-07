@@ -49,11 +49,14 @@ builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("
 
 // services
 builder.Services.AddScoped<IPositionInvestissementService, PositionInvestissementService>();
+builder.Services.AddScoped<ISynchronisationPowensService, SynchronisationPowensService>();
+builder.Services.AddScoped<IUtilisateurPowensService, UtilisateurPowensService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
 builder.Services.AddScoped<IMacroCategorieService, MacroCategorieService>();
 builder.Services.AddScoped<IMicroCategorieService, MicroCategorieService>();
 builder.Services.AddScoped<ICompteBanqueService, CompteBanqueService>();
 builder.Services.AddScoped<IFluxBancaireService, FluxBancaireService>();
+builder.Services.AddScoped<IBanqueService, BanqueService>();
 builder.Services.AddScoped<IActifService, ActifService>();
 builder.Services.AddScoped<ICryptService, CryptService>();
 
@@ -85,10 +88,8 @@ builder.Services.AddScoped<IActifRepository, ActifRepository>();
 
 
 // workers
-//builder.Services.AddHostedService<SynchronisationPositionsInvestissementWorker>();
-//builder.Services.AddHostedService<RecuperationSoldeComptesWorker>();
-//builder.Services.AddSingleton<RecuperationFluxBancairesWorker>();
-//builder.Services.AddHostedService(provider => provider.GetRequiredService<RecuperationFluxBancairesWorker>());
+builder.Services.AddHostedService<SynchroPositionsInvestissementWorker>();
+builder.Services.AddHostedService<SynchroFluxBancairesWorker>();
 
 
 builder.Services.AddAuthentication("Manual")

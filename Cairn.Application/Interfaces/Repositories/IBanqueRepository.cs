@@ -6,16 +6,12 @@ namespace Cairn.Application.Interfaces.Repositories
     {
         Task<IEnumerable<Banque>> GetAll();
 
-        Task<Banque?> GetByUserId(int userId);
+        Task<Banque?> GetByCompteIdForUserId(int idCompte, int userId);
 
-        Task<Banque?> GetByCompteId(int compteId);
-
-        Task<IEnumerable<Banque>> GetAllByUserId(int userId);
+        Task<Banque?> GetByConnectionIdForUserId(int idConnectionPowens, int userId);
 
         Task Add(Banque acces);
 
         Task Update(Banque acces);
-
-        Task SaveChanges();
     }
 }

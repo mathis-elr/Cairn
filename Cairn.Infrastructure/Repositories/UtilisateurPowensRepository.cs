@@ -24,12 +24,5 @@ namespace Cairn.Infrastructure.Repositories
             await context.UtilisateurPowens.AddAsync(acces);
             await context.SaveChangesAsync();
         }
-
-        public async Task Update(UtilisateurPowens acces)
-        {
-            await using var context = await _dbFactory.CreateDbContextAsync();
-            context.UtilisateurPowens.Update(acces);
-            await context.SaveChangesAsync();
-        }
     }
 }

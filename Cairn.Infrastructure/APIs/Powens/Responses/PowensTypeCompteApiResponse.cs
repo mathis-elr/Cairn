@@ -15,5 +15,8 @@ namespace Cairn.Infrastructure.APIs.Powens.Responses
 
         [JsonPropertyName("balance")]
         public decimal? Solde { get; set; }
+
+        [JsonPropertyName("disabled")]
+        public DateTime? Disabled { get; set; }
     }
 }
