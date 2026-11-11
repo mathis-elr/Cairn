@@ -6,8 +6,6 @@ namespace Cairn.Application.Interfaces.Services
     {
         Task<List<SourceDto>> GetAllByUserId(int userId);
 
-        Task GetPositionsInvestissement(int compteBanqueId);
-
         Task SaveComptes(IEnumerable<CompteImportDto> comptesPowens, int banqueId);
 
         Task UpdateNom(SourceDto source, int userId);

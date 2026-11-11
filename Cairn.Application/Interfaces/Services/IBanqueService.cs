@@ -2,7 +2,7 @@
 {
     public interface IBanqueService
     {
-        Task SynchroniserSoldeComptes();
+        Task SynchroniserSoldeComptesAsync();
 
         Task SaveBanque(int connectionBanqueId, int userId);
     }

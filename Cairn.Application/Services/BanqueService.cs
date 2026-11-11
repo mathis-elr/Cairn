@@ -22,26 +22,19 @@ namespace Cairn.Application.Services
         private readonly IPowensApiService _powensApiService = powensApiService;
         private readonly ICryptService _cryptService = cryptService;
 
-        public async Task SynchroniserSoldeComptes()
+        public async Task SynchroniserSoldeComptesAsync()
         {
             var banques = await _banqueRepository.GetAll();
 
-            foreach (var banque in banques)
+            foreach (var utilisateur in banques.GroupBy(b => b.UtilisateurId))
             {
-                var tokenClair = await GetTokenClair(banque.UtilisateurId);
-                var comptesPowens = await _powensApiService.GetComptes(tokenClair, banque.IdConnectionPowens);
-                var comptesPowensDict = comptesPowens.ToDictionary(c => c.Id);
+                var tokenClair = await GetTokenClair(utilisateur.Key);
 
-                foreach (var compte in banque.ComptesBanques)
+                foreach (var banque in utilisateur)
                 {
-                    if (!comptesPowensDict.TryGetValue(compte.IdPowens, out var comptePowens))
-                        continue;
-
-                    if (compte.Solde != comptePowens.Solde && comptePowens.Solde != null)
-                        compte.Solde = comptePowens.Solde.Value;
+                    var comptesPowens = await _powensApiService.GetComptes(tokenClair, banque.IdConnectionPowens);
+                    await _compteBanqueService.SaveComptes(comptesPowens, banque.Id);
                 }
-
-                await _compteBanqueService.SaveComptes(comptesPowens, banque.Id);
             }
         }
 

@@ -1,5 +1,5 @@
-﻿using Cairn.Application.Interfaces.Services;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Cairn.Application.Interfaces.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -23,11 +23,24 @@ namespace Cairn.Infrastructure.Workers
                 _logger.LogInformation("Début de la synchronisation des flux Powens ...");
 
                 using var scope = _serviceProvider.CreateScope();
-                var fluxBancaireService = scope.ServiceProvider.GetRequiredService<IFluxBancaireService>();
-                var positionService = scope.ServiceProvider.GetRequiredService<IPositionInvestissementService>();
 
                 try
                 {
+                    var banqueService = scope.ServiceProvider.GetRequiredService<IBanqueService>();
+
+                    await banqueService.SynchroniserSoldeComptesAsync();
+                    _logger.LogInformation("Fin de la synchronisation des soldes de comptes.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erreur synchronisation des flux bancaires Powens");
+                    Console.WriteLine($"Error synchronizing bank flows: {ex.Message}");
+                }
+
+                try
+                {
+                    var fluxBancaireService = scope.ServiceProvider.GetRequiredService<IFluxBancaireService>();
+
                     await fluxBancaireService.SynchroniserFluxBancairesAsync();
                     _logger.LogInformation("Fin de la synchronisation des flux Powens.");
                 }
@@ -39,6 +52,8 @@ namespace Cairn.Infrastructure.Workers
 
                 try
                 {
+                    var positionService = scope.ServiceProvider.GetRequiredService<IPositionInvestissementService>();
+
                     await positionService.SynchroniserPositions();
                     _logger.LogInformation("Fin de la synchronisation des positions Powens.");
                 }
