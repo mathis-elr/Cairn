@@ -1,6 +1,5 @@
 ﻿using Cairn.Application.Interfaces.Services;
 using Cairn.Application.DTO.FluxBancaires;
-using Cairn.Application.Interfaces.APIs;
 using Cairn.Web.GestionSession;
 
 namespace Cairn.Web.Components.ViewsModels.Sources
@@ -38,8 +37,6 @@ namespace Cairn.Web.Components.ViewsModels.Sources
 
         public async Task StartLoadData()
         {
-            Chargement = true;
-
             try
             {
                 await InitialiserSession();

@@ -1,13 +1,16 @@
 ﻿@page "/sources"
 @attribute [Authorize]
 @inject SourcesViewModel SVM
-@* @inject RecuperationFluxBancairesWorker BankWorker *@
 @inject IToastService TS
 @inject NavigationManager Nav
 
 <PageTitle>Sources</PageTitle>
 
-@if (SVM.AucuneSource)
+@if (SVM.Chargement)
+{
+<_Chargement />
+}
+else if (SVM.AucuneSource)
 {
     <div class="bloc-empty">
         <_EmptyStateCard Icone="icons/wallet.svg"
@@ -78,8 +81,6 @@ else
         if (SyncStatus == "ok")
         {
             TS.ShowSuccess("Banque synchronisée avec succès !");
-            // TS.ShowInfo("Synchronisation des flux lancée en arrière-plan ...");
-            // BankWorker.DeclencherSynchronisationImmediate(SVM.IdUser);
             SyncStatus = null;
         }
         else if (SyncStatus == "error")
@@ -96,6 +97,11 @@ else
         }
         else
         {
+            SVM.Chargement = true;
+            StateHasChanged();
+
+            await Task.Yield();
+
             await SVM.StartLoadData();
         }
     }
