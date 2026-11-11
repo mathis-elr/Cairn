@@ -34,10 +34,9 @@ namespace Cairn.Application.Services
             {
                 var depuis = await _fluxBancaireRepository.GetDateDernierFluxByCompteId(compte!.Id);
                 var tokenClair = await GetTokenClair(compte.Banque.UtilisateurId);
-                
                 var flux = await _powensApiService.GetTransactions(tokenClair, compte.IdPowens, depuis);
 
-                await AddRange(flux, compte.Banque.UtilisateurId ,compte.Id);
+                await AddRange(flux, compte.Banque.UtilisateurId, compte.Id);
             }
         }
 

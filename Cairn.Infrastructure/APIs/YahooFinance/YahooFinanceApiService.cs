@@ -8,16 +8,20 @@ using YahooFinanceApi;
 
 namespace Cairn.Infrastructure.APIs.YahooFinance
 {
-    public class YahooFinanceApiService(IOptions<YahooFinanceApiOptions> options) : IYahooFinanceApiService   
+    public class YahooFinanceApiService(IOptions<YahooFinanceApiOptions> options,
+                                        HttpClient _httpClient) : IYahooFinanceApiService   
     {
         private readonly YahooFinanceApiOptions _options = options.Value;
+        private readonly HttpClient _httpClient = _httpClient;
 
-        private readonly Dictionary<string, string> tickersFixes = new()
+        private static readonly HashSet<string> TypesAcceptes = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "FR0013416716", "GLDA.DE" },
-            { "XF000BTC0017", "BTC-EUR" }, 
-            { "XF000ETH0019", "ETH-EUR" }, 
-            { "XF000SOL0012", "SOL-EUR" }, 
+            "EQUITY", "ETF", "MUTUALFUND", "CRYPTOCURRENCY"
+        };
+
+        private static readonly string[] SuffixesEuro =
+        {
+            "-EUR", ".PA", ".DE", ".F", ".AS", ".MI", ".MC", ".BR", ".LS", ".VI", ".HE", ".IR"
         };
 
         public async Task<Dictionary<string, decimal>> GetPrixActuelAsync(IEnumerable<string> tickers)
@@ -32,12 +36,10 @@ namespace Cairn.Infrastructure.APIs.YahooFinance
                 // On ajoute le taux EUR/USD aux tickers à interroger
                 var listeTickers = tickers.ToList();
                 if (!listeTickers.Contains("EURUSD=X"))
-                {
                     listeTickers.Add("EURUSD=X");
-                }
 
-                IReadOnlyDictionary<string, Security> resultats =
-                    await Yahoo.Symbols(listeTickers.ToArray()).QueryAsync();
+
+                IReadOnlyDictionary<string, Security> resultats = await Yahoo.Symbols(listeTickers.ToArray()).QueryAsync();
 
                 // Récupération du taux de change EUR -> USD (ex: 1.08)
                 decimal tauxEurUsd = 1.0m;
@@ -68,13 +70,14 @@ namespace Cairn.Infrastructure.APIs.YahooFinance
             }
             catch (Exception)
             {
-                Console.WriteLine($"ERREUR internet, impossible de recuperer le prix des actifs avec l'API yahoo");
+                Console.WriteLine($"ERREUR inconnue avec l'API Yahoo Finance, impossible de recuperer le prix des actifs.");
                 throw new Exception($"Echec du chargement du patrimoine, connectez-vous à internet pour visualiser votre patrimoine");
             }
 
             return dictionnairePrix;
         }
 
+        // REVOIR ET REFACTORISER CETTE FONCTION POUR LA RENDRE UTILISABLE
         public async Task<Dictionary<LapsTemps, decimal>> GetPrixHistorique(string ticker)
         {
             var dictionnairePrix = new Dictionary<LapsTemps, decimal>();
@@ -151,34 +154,44 @@ namespace Cairn.Infrastructure.APIs.YahooFinance
             return dictionnairePrix;
         }
 
-        public async Task<string?> GetTickerByIsinAsync(string isin)
+        public async Task<string?> ChercherTicker(string? code, string libelle)
         {
-            if (tickersFixes.TryGetValue(isin, out var manualTicker))
+            // on essaie d'abord avec l'ISIN, puis libellé + "EUR" (cryptos), puis libellé seul
+            var requetes = new List<string>();
+            if (!string.IsNullOrWhiteSpace(code))
+                requetes.Add(code);
+            if (!string.IsNullOrWhiteSpace(libelle))
             {
-                return manualTicker;
+                requetes.Add($"{libelle} EUR");
+                requetes.Add(libelle);
             }
 
-            return await SearchTickerOnYahoo(isin);
+            foreach (var requete in requetes)
+            {
+                var ticker = await SearchTickerOnYahoo(requete);
+                if (ticker != null)
+                    return ticker;
+            }
+
+            return null;
         }
 
-        private async Task<string?> SearchTickerOnYahoo(string isin)
+        private async Task<string?> SearchTickerOnYahoo(string requete)
         {
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+            var url = _options.BaseUri + string.Format(_options.SearchEndPoint, Uri.EscapeDataString(requete));
+            var reponse = await _httpClient.GetFromJsonAsync<YahooSearchApiResponse>(url);
 
-                string url = _options.BaseUri + _options.SearchEndPoint + isin;
-                var response = await client.GetAsync(url);
-        
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadFromJsonAsync<YahooSearchApiResponse>();
-                    
-                    var quote = json?.Quotes?.FirstOrDefault();
-                    return quote?.Ticker; 
-                }
-            }
-            return null;
+            return reponse?.Quotes
+                .Where(q => q.IsYahooFinance && TypesAcceptes.Contains(q.QuoteType ?? ""))
+                .OrderByDescending(q => EstEnEuros(q.Ticker))
+                .ThenByDescending(q => q.Score)
+                .Select(q => q.Ticker)
+                .FirstOrDefault();
+        }
+
+        private static bool EstEnEuros(string ticker)
+        {
+            return SuffixesEuro.Any(s => ticker.EndsWith(s, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

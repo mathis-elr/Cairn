@@ -88,8 +88,7 @@ builder.Services.AddScoped<IActifRepository, ActifRepository>();
 
 
 // workers
-builder.Services.AddHostedService<SynchroPositionsInvestissementWorker>();
-builder.Services.AddHostedService<SynchroFluxBancairesWorker>();
+builder.Services.AddHostedService<SynchroPowensWorker>();
 
 
 builder.Services.AddAuthentication("Manual")

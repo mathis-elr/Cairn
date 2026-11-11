@@ -39,17 +39,17 @@ namespace Cairn.Application.Services
         public async Task<int> GetActifId(string? code, string libelle)
         {
             var codeNormalise = string.IsNullOrWhiteSpace(code) ? null : code.Trim().ToUpperInvariant();
-            var libelleNormalise = libelle.Trim();
+            var libelleNettoye = NettoyerLibelle(libelle);
 
-            var actif = await _actifRepository.GetByCodeOuLibelle(codeNormalise, libelleNormalise);
+            var actif = await _actifRepository.GetByCodeOuLibelle(codeNormalise, libelleNettoye);
             if (actif != null)
                 return actif.Id;
 
             actif = new Actif
             {
-                Libelle = libelleNormalise,
+                Libelle = libelleNettoye,
                 CodePowens = codeNormalise,
-                Symbole = await ChercherSymbole(codeNormalise),
+                Symbole = await ChercherSymbole(codeNormalise, libelleNettoye),
                 DateRechercheSymbole = DateTime.UtcNow
             };
             await _actifRepository.Add(actif);
@@ -77,14 +77,14 @@ namespace Cairn.Application.Services
             return resultat.Length > 0 ? resultat : libelle.Trim();
         }
 
-        private async Task<string?> ChercherSymbole(string? code)
+        private async Task<string?> ChercherSymbole(string? code, string libelle)
         {
             if (code == null)
                 return null;
 
             try
             {
-                return await _yahooFinanceApiService.GetTickerByIsinAsync(code);
+                return await _yahooFinanceApiService.ChercherTicker(code, libelle);
             }
             catch (Exception)
             {

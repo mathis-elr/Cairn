@@ -8,7 +8,7 @@ namespace Cairn.Application.Interfaces.APIs
 
         Task<Dictionary<LapsTemps, decimal>> GetPrixHistorique(string ticker);
 
-        Task<string?> GetTickerByIsinAsync(string isin);
+        Task<string?> ChercherTicker(string? code, string libelle);
     }
 }
 
