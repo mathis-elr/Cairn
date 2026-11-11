@@ -5,12 +5,15 @@ using Cairn.Application.Interfaces.Repositories;
 using Cairn.Application.Interfaces.Services;
 using Cairn.Domain.Extensions;
 using Cairn.Domain.Modeles;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Cairn.Application.Services
 {
-    public class CompteBanqueService(ICompteBanqueRepository compteBanqueRepository,
+    public class CompteBanqueService(IHistoriqueSoldeCompteService historiqueSoldeCompteService,
+                                     ICompteBanqueRepository compteBanqueRepository,
                                      ILogoDevApiService logoDevApiService) : ICompteBanqueService
     {
+        private readonly IHistoriqueSoldeCompteService _historiqueSoldeCompteService = historiqueSoldeCompteService;
         private readonly ICompteBanqueRepository _compteBanqueRepository = compteBanqueRepository;
         private readonly ILogoDevApiService _logoDevApiService = logoDevApiService;
 
@@ -37,6 +40,7 @@ namespace Cairn.Application.Services
 
             var aMettreAJour = new List<CompteBanque>();
             var nouveaux = new List<CompteBanque>();
+            var comptesAHistoriser = new List<CompteBanque>();
 
             foreach (var c in comptesPowens.Where(c => !c.Desactive))
             {
@@ -60,10 +64,27 @@ namespace Cairn.Application.Services
                         BanqueId = banqueId
                     });
                 }
+
+                if (c.Solde.HasValue)
+                    comptesAHistoriser.Add(compte);
             }
 
-            await _compteBanqueRepository.UpdateRange(aMettreAJour);
-            await _compteBanqueRepository.AddRange(nouveaux);
+            if (aMettreAJour.Count > 0)
+                await _compteBanqueRepository.UpdateRange(aMettreAJour);
+
+            if (nouveaux.Count > 0)
+                await _compteBanqueRepository.AddRange(nouveaux);
+
+            var historiques = comptesAHistoriser
+                .Select(compte => new HistoriqueSoldeCompte
+                {
+                    Date = DateTime.Today,
+                    Solde = compte.Solde,
+                    CompteBanqueId = compte.Id
+                })
+                .ToList();
+
+            await _historiqueSoldeCompteService.SaveRange(historiques);
         }
 
         public async Task UpdateNom(SourceDto source, int userId)

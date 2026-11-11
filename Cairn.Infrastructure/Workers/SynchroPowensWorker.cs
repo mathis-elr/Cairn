@@ -20,10 +20,11 @@ namespace Cairn.Infrastructure.Workers
                 if (_environment.IsDevelopment())
                     return;
 
-                _logger.LogInformation("Début de la synchronisation des flux Powens ...");
+                _logger.LogInformation("Début de la synchronisation Powens ...");
 
                 using var scope = _serviceProvider.CreateScope();
 
+                // SOLDE COMPTES
                 try
                 {
                     var banqueService = scope.ServiceProvider.GetRequiredService<IBanqueService>();
@@ -33,10 +34,11 @@ namespace Cairn.Infrastructure.Workers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erreur synchronisation des flux bancaires Powens");
-                    Console.WriteLine($"Error synchronizing bank flows: {ex.Message}");
+                    _logger.LogError(ex, "Erreur synchronisation des soldes de comptes Powens");
+                    Console.WriteLine($"Erreur synchronisation des soldes de comptes Powens: {ex.Message}");
                 }
 
+                // FLUX BANCAIRES
                 try
                 {
                     var fluxBancaireService = scope.ServiceProvider.GetRequiredService<IFluxBancaireService>();
@@ -47,9 +49,10 @@ namespace Cairn.Infrastructure.Workers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Erreur synchronisation des flux bancaires Powens");
-                    Console.WriteLine($"Error synchronizing bank flows: {ex.Message}");
+                    Console.WriteLine($"Erreur synchronisation des flux bancaires Powens: {ex.Message}");
                 }
 
+                // POSITIONS INVESTISSEMENT
                 try
                 {
                     var positionService = scope.ServiceProvider.GetRequiredService<IPositionInvestissementService>();
@@ -60,10 +63,10 @@ namespace Cairn.Infrastructure.Workers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Erreur synchronisation des positions Powens");
-                    Console.WriteLine($"Error synchronizing positions: {ex.Message}");
+                    Console.WriteLine($"Erreur synchronisation des positions Powens: {ex.Message}");
                 }
 
-                _logger.LogInformation("Fin de la synchronisation des flux et positions Powens.");
+                _logger.LogInformation("Fin de la synchronisation Powens.");
 
                 await Task.Delay(TimeSpan.FromHours(12), stoppingToken);
             }
