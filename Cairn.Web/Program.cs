@@ -49,6 +49,7 @@ builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("
 
 // services
 builder.Services.AddScoped<IPositionInvestissementService, PositionInvestissementService>();
+builder.Services.AddScoped<IHistoriqueSoldeCompteService, HistoriqueSoldeCompteService>();
 builder.Services.AddScoped<ISynchronisationPowensService, SynchronisationPowensService>();
 builder.Services.AddScoped<IUtilisateurPowensService, UtilisateurPowensService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
@@ -77,6 +78,7 @@ builder.Services.AddScoped<SourcesViewModel>();
 
 // repositories
 builder.Services.AddScoped<IPositionInvestissementRepository, PositionInvestissementRepository>();
+builder.Services.AddScoped<IHistoriqueSoldeCompteRepository, HistoriqueSoldeCompteRepository>();
 builder.Services.AddScoped<IUtilisateurPowensRepository, UtilisateurPowensRepository>();
 builder.Services.AddScoped<IMacroCategorieRepository, MacroCategorieRepository>();
 builder.Services.AddScoped<IMicroCategorieRepository, MicroCategorieRepository>();
