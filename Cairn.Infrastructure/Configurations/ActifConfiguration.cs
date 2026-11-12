@@ -8,8 +8,6 @@ namespace Cairn.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Actif> builder)
         {
-            builder.HasIndex(e => e.IdPowens)
-                .IsUnique();
         }
     }
 }

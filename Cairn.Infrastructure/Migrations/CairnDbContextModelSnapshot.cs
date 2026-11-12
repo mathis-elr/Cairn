@@ -37,9 +37,6 @@ namespace Cairn.Infrastructure.Migrations
                     b.Property<DateTime?>("DateRechercheSymbole")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("IdPowens")
-                        .HasColumnType("int");
-
                     b.Property<string>("Libelle")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -56,9 +53,6 @@ namespace Cairn.Infrastructure.Migrations
                         .HasColumnType("tinyint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IdPowens")
-                        .IsUnique();
 
                     b.ToTable("Actif");
                 });

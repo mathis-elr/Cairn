@@ -3,7 +3,6 @@
     public enum LogoSource : byte
     {
         TradeRepublic = 1,
-        LogoDev = 2,
-        Aucun = 3
+        LogoDev = 2
     }
 }

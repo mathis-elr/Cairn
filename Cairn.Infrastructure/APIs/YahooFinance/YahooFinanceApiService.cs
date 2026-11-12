@@ -5,14 +5,22 @@ using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 using System.Text.Json;
 using YahooFinanceApi;
+using Cairn.Application.DTO.YahooFinance;
 
 namespace Cairn.Infrastructure.APIs.YahooFinance
 {
-    public class YahooFinanceApiService(IOptions<YahooFinanceApiOptions> options,
-                                        HttpClient _httpClient) : IYahooFinanceApiService   
+    public class YahooFinanceApiService : IYahooFinanceApiService   
     {
-        private readonly YahooFinanceApiOptions _options = options.Value;
-        private readonly HttpClient _httpClient = _httpClient;
+        private readonly YahooFinanceApiOptions _options;
+        private readonly HttpClient _httpClient;
+
+        public YahooFinanceApiService(IOptions<YahooFinanceApiOptions> options, HttpClient httpClient)
+        {
+            _options = options.Value;
+            _httpClient = httpClient;
+
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+        }
 
         private static readonly HashSet<string> TypesAcceptes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -154,7 +162,7 @@ namespace Cairn.Infrastructure.APIs.YahooFinance
             return dictionnairePrix;
         }
 
-        public async Task<string?> ChercherTicker(string? code, string libelle)
+        public async Task<YahooFinanceResultDto?> GetInfoActifYahoo(string? code, string libelle)
         {
             // on essaie d'abord avec l'ISIN, puis libellé + "EUR" (cryptos), puis libellé seul
             var requetes = new List<string>();
@@ -168,15 +176,15 @@ namespace Cairn.Infrastructure.APIs.YahooFinance
 
             foreach (var requete in requetes)
             {
-                var ticker = await SearchTickerOnYahoo(requete);
-                if (ticker != null)
-                    return ticker;
+                var result = await SearchOnYahoo(requete);
+                if (result != null)
+                    return result;
             }
 
             return null;
         }
 
-        private async Task<string?> SearchTickerOnYahoo(string requete)
+        private async Task<YahooFinanceResultDto?> SearchOnYahoo(string requete)
         {
             var url = _options.BaseUri + string.Format(_options.SearchEndPoint, Uri.EscapeDataString(requete));
             var reponse = await _httpClient.GetFromJsonAsync<YahooSearchApiResponse>(url);
@@ -185,7 +193,11 @@ namespace Cairn.Infrastructure.APIs.YahooFinance
                 .Where(q => q.IsYahooFinance && TypesAcceptes.Contains(q.QuoteType ?? ""))
                 .OrderByDescending(q => EstEnEuros(q.Ticker))
                 .ThenByDescending(q => q.Score)
-                .Select(q => q.Ticker)
+                .Select(q => new YahooFinanceResultDto
+                {
+                   Ticker = q.Ticker,
+                   TypeActif = q.QuoteType ?? string.Empty
+                })
                 .FirstOrDefault();
         }
 

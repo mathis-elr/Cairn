@@ -1,3 +1,4 @@
+using Cairn.Application.DTO.YahooFinance;
 using Cairn.Domain.Enums;
 
 namespace Cairn.Application.Interfaces.APIs
@@ -8,7 +9,7 @@ namespace Cairn.Application.Interfaces.APIs
 
         Task<Dictionary<LapsTemps, decimal>> GetPrixHistorique(string ticker);
 
-        Task<string?> ChercherTicker(string? code, string libelle);
+        Task<YahooFinanceResultDto?> GetInfoActifYahoo(string? code, string libelle);
     }
 }
 

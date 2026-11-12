@@ -1,13 +1,17 @@
-﻿using Cairn.Application.Interfaces.APIs;
+﻿using Cairn.Application.DTO.YahooFinance;
+using Cairn.Application.Interfaces.APIs;
 using Cairn.Application.Interfaces.Repositories;
 using Cairn.Application.Interfaces.Services;
+using Cairn.Domain.Enums;
 using Cairn.Domain.Modeles;
 
 namespace Cairn.Application.Services
 {
-    public class ActifService(IActifRepository actifRepository,
-                              IYahooFinanceApiService yahooFinanceApiService) : IActifService
+    public class ActifService(ITradeRepublicLogoApiService tradeRepublicLogoApiService,
+                              IYahooFinanceApiService yahooFinanceApiService,
+                              IActifRepository actifRepository) : IActifService
     {
+        private readonly ITradeRepublicLogoApiService _tradeRepublicLogoApiService = tradeRepublicLogoApiService;
         private readonly IActifRepository _actifRepository = actifRepository;
         private readonly IYahooFinanceApiService _yahooFinanceApiService = yahooFinanceApiService;
 
@@ -31,35 +35,28 @@ namespace Cairn.Application.Services
 
         private static readonly char[] _ponctuation = ['(', ')', '[', ']', ',', '.', '-', '/', '|'];
 
-        public async Task<List<Actif>> GetAll()
-        {
-            return await _actifRepository.GetAll();
-        }
-
         public async Task<int> GetActifId(string? code, string libelle)
         {
-            var codeNormalise = string.IsNullOrWhiteSpace(code) ? null : code.Trim().ToUpperInvariant();
             var libelleNettoye = NettoyerLibelle(libelle);
 
-            var actif = await _actifRepository.GetByCodeOuLibelle(codeNormalise, libelleNettoye);
+            var actif = await _actifRepository.GetByCodeOuLibelle(code, libelleNettoye);
             if (actif != null)
                 return actif.Id;
+
+            var infosActif = await ChercherInfosActif(code, libelleNettoye);
 
             actif = new Actif
             {
                 Libelle = libelleNettoye,
-                CodePowens = codeNormalise,
-                Symbole = await ChercherSymbole(codeNormalise, libelleNettoye),
+                CodePowens = code,
+                Symbole = infosActif?.Ticker,
+                Type = DeterminerType(infosActif?.TypeActif, libelle, code),
+                LogoSource = await _tradeRepublicLogoApiService.LogoExiste(code) ? LogoSource.TradeRepublic : LogoSource.LogoDev,
                 DateRechercheSymbole = DateTime.UtcNow
             };
             await _actifRepository.Add(actif);
 
             return actif.Id;
-        }
-
-        public async Task<IEnumerable<string>> GetTickers()
-        {
-            return await _actifRepository.GetAllSymboles();
         }
 
         public string NettoyerLibelle(string libelle)
@@ -77,19 +74,34 @@ namespace Cairn.Application.Services
             return resultat.Length > 0 ? resultat : libelle.Trim();
         }
 
-        private async Task<string?> ChercherSymbole(string? code, string libelle)
+        private async Task<YahooFinanceResultDto?> ChercherInfosActif(string? code, string libelle)
         {
             if (code == null)
                 return null;
 
             try
             {
-                return await _yahooFinanceApiService.ChercherTicker(code, libelle);
+                return await _yahooFinanceApiService.GetInfoActifYahoo(code, libelle);
             }
             catch (Exception)
             {
                 return null;
             }
+        }
+
+        private static TypeActif DeterminerType(string? typeYahoo, string? libelle, string? code)
+        {
+            if (!string.IsNullOrWhiteSpace(libelle) && libelle.Contains("SCPI", StringComparison.OrdinalIgnoreCase))
+                return TypeActif.SCPI;
+
+            return typeYahoo?.ToUpperInvariant() switch
+            {
+                "EQUITY" => TypeActif.Action,
+                "CRYPTOCURRENCY" => TypeActif.Crypto,
+                "ETF" => TypeActif.ETF,
+                "MUTUALFUND" => TypeActif.Fonds,
+                _ => TypeActif.Autre
+            };
         }
     }
 }

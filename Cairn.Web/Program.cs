@@ -21,6 +21,7 @@ using Microsoft.EntityFrameworkCore;
 using Blazored.Toast;
 using ApexCharts;
 using Cairn.Web.Components.ViewsModels.Sources;
+using Cairn.Infrastructure.APIs.TradeRepublicLogo;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +46,7 @@ builder.Services.Configure<CryptOptions>(builder.Configuration.GetSection("Secur
 builder.Services.Configure<PowensApiOptions>(builder.Configuration.GetSection("PowensApi"));
 builder.Services.Configure<YahooFinanceApiOptions>(builder.Configuration.GetSection("YahooFinanceApi"));
 builder.Services.Configure<LogoDevApiOptions>(builder.Configuration.GetSection("LogoDevApi"));
+builder.Services.Configure<TradeRepublicLogoApiOptions>(builder.Configuration.GetSection("TradeRepublicLogoApi"));
 
 
 // services
@@ -61,9 +63,10 @@ builder.Services.AddScoped<IBanqueService, BanqueService>();
 builder.Services.AddScoped<IActifService, ActifService>();
 builder.Services.AddScoped<ICryptService, CryptService>();
 
+builder.Services.AddScoped<ITradeRepublicLogoApiService, TradeRepublicLogoApiService>();
 builder.Services.AddScoped<IYahooFinanceApiService, YahooFinanceApiService>();
-builder.Services.AddScoped<ILogoDevApiService, LogoDevApiService>();
 builder.Services.AddHttpClient<IPowensApiService, PowensApiService>();
+builder.Services.AddScoped<ILogoDevApiService, LogoDevApiService>();
 
 
 // views models
