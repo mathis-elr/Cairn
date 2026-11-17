@@ -13,11 +13,11 @@ namespace Cairn.Infrastructure.APIs.Powens
         public string ConnectEndPoint { get; set; } = string.Empty;
         public string ReconnectEndPoint { get; set; } = string.Empty;
 
+        public string ConnectionsEndPoint { get; set; } = string.Empty;
         public string ConnectionEndPoint { get; set; } = string.Empty;
         public string AccountsConnectionEndPoint { get; set; } = string.Empty;
         public string ConnectorEndPoint { get; set; } = string.Empty;
 
-        public string AccountsEndPoint { get; set; } = string.Empty;
         public string TransactionsEndPoint { get; set; } = string.Empty;
         public string InvestEndPoint {  get; set; } = string.Empty;
 

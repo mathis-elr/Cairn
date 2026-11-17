@@ -73,6 +73,39 @@ namespace Cairn.Infrastructure.APIs.Powens
             return comptes.NomBanque;
         }
 
+        public async Task<ConnectionImportDto> ActualiserConnection(string token, int connectionBanqueId)
+        {
+            var reponse = await RequeteAvecToken(HttpMethod.Put, token, string.Format(_options.ConnectionEndPoint, connectionBanqueId) + "?psu_requested=false");
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var connection = JsonSerializer.Deserialize<PowensConnectionApiResponse>(reponseString);
+
+            if (connection?.IdConnector == null)
+                throw new Exception("L'API n'a renvoyé aucune connection pour cet utilisateur.");
+
+            return new ConnectionImportDto
+            {
+                IdConnector = connection.IdConnector!.Value,
+                LastUpdate = connection.LastUpdate,
+                PowensState = connection.PowensState,
+            };
+        }
+
+        public async Task<List<ConnectionImportDto>> GetConnections(string token)
+        {
+            var reponse = await RequeteAvecToken(HttpMethod.Get, token, _options.ConnectionsEndPoint);
+            var reponseString = await reponse.Content.ReadAsStringAsync();
+            var connections = JsonSerializer.Deserialize<PowensConnectionsApiResponse>(reponseString);
+
+            return connections?.Connections
+                .Where(c => c.IdConnector != null)
+                .Select(c => new ConnectionImportDto
+                {
+                    IdConnector = c.IdConnector!.Value,
+                    LastUpdate = c.LastUpdate,
+                    PowensState = c.PowensState
+                }).ToList() ?? throw new Exception("L'API n'a renvoyé aucune connection pour cet utilisateur.");
+        }
+
         public async Task<ConnectionImportDto> GetConnection(string token, int connectionBanqueId)
         {
             var reponse = await RequeteAvecToken(HttpMethod.Get, token, string.Format(_options.ConnectionEndPoint, connectionBanqueId));
@@ -84,9 +117,9 @@ namespace Cairn.Infrastructure.APIs.Powens
 
             return new ConnectionImportDto
             {
-                IdConnector = connection.IdConnector.Value,
-                LastUpdate = connection.LastUpdate ?? DateTime.UtcNow,
-                PowensState = connection.PowensState ?? string.Empty,
+                IdConnector = connection.IdConnector!.Value,
+                LastUpdate = connection.LastUpdate,
+                PowensState = connection.PowensState
             };
         }
 

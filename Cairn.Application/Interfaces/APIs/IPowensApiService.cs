@@ -11,6 +11,9 @@ namespace Cairn.Application.Interfaces.APIs
 
         Task<IEnumerable<CompteImportDto>> GetComptes(string token, int connectionBanqueId);
         Task<string> GetNomBanque(string token, int idConnector);
+
+        Task<ConnectionImportDto> ActualiserConnection(string token, int connectionBanqueId);
+        Task<List<ConnectionImportDto>> GetConnections(string token);
         Task<ConnectionImportDto> GetConnection(string token, int connectionBanqueId);
 
         Task<List<FluxBancaireImportDto>> GetTransactions(string tokenClair, int idComptePowens, DateTime? depuis);
